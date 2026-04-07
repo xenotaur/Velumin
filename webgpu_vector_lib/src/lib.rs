@@ -1,14 +1,185 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use wgpu::util::DeviceExt;
+
+#[wasm_bindgen]
+extern "C" {
+    fn log(s: &str);
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[wasm_bindgen]
+pub struct WebGPU {
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    #[allow(dead_code)]
+    config: wgpu::SurfaceConfiguration,
+    vertex_buffer: wgpu::Buffer,
+    render_pipeline: wgpu::RenderPipeline,
+    surface: wgpu::Surface,
+}
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct Vertex {
+    position: [f32; 2],
+}
+
+#[wasm_bindgen]
+impl WebGPU {
+    #[wasm_bindgen(constructor)]
+    pub async fn new(canvas_id: &str) -> Result<WebGPU, JsValue> {
+        console_error_panic_hook::set_once();
+        log("Starting WebGPU setup");
+
+        let window = web_sys::window().ok_or("No window available")?;
+        let document = window.document().ok_or("No document available")?;
+        let canvas = document
+            .get_element_by_id(canvas_id)
+            .ok_or("Canvas not found")?
+            .dyn_into::<web_sys::HtmlCanvasElement>()?;
+
+        let device_pixel_ratio = window.device_pixel_ratio();
+        let width = (canvas.client_width() as f64 * device_pixel_ratio) as u32;
+        let height = (canvas.client_height() as f64 * device_pixel_ratio) as u32;
+        canvas.set_width(width);
+        canvas.set_height(height);
+
+        let instance = wgpu::Instance::default();
+        log("Created wgpu instance");
+
+        let surface = wgpu::Instance::create_surface_from_canvas(&instance, canvas)
+            .map_err(|e| JsValue::from_str(&format!("Surface creation failed: {:?}", e)))?;
+        log("Created surface from canvas");
+
+        let adapter = instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::HighPerformance,
+            compatible_surface: Some(&surface),
+            force_fallback_adapter: false,
+        }).await.ok_or_else(|| JsValue::from_str("Failed to get GPU adapter"))?;
+        let adapter_info = adapter.get_info();
+        log(&format!("Adapter found: {} ({:?})", adapter_info.name, adapter_info.backend));
+
+        let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
+            label: Some("WebGPU Device"),
+            features: wgpu::Features::empty(),
+            limits: wgpu::Limits::downlevel_webgl2_defaults(),
+        }, None).await.map_err(|e| JsValue::from_str(&format!("Device request error: {:?}", e)))?;
+        log("Device and queue acquired");
+
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: surface.get_capabilities(&adapter).formats[0],
+            width,
+            height,
+            present_mode: wgpu::PresentMode::Fifo,
+            alpha_mode: wgpu::CompositeAlphaMode::Opaque,
+            view_formats: vec![],
+        };
+        surface.configure(&device, &config);
+        log("Surface configured");
+
+        let line_vertices = [
+            Vertex { position: [-0.5, 0.0] },
+            Vertex { position: [ 0.5, 0.0] },
+        ];
+
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Line Vertex Buffer"),
+            contents: bytemuck::cast_slice(&line_vertices),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        log("Vertex buffer created");
+
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Line Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/line.wgsl").into()),
+        });
+        log("Shader module created");
+
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Pipeline Layout"),
+            bind_group_layouts: &[],
+            push_constant_ranges: &[],
+        });
+
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Line Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: "vs_main",
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+                    step_mode: wgpu::VertexStepMode::Vertex,
+                    attributes: &[wgpu::VertexAttribute {
+                        format: wgpu::VertexFormat::Float32x2,
+                        offset: 0,
+                        shader_location: 0,
+                    }],
+                }],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: config.format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::LineList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                unclipped_depth: false,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+        });
+        log("Render pipeline created");
+
+        Ok(WebGPU { device, queue, config, vertex_buffer, render_pipeline, surface })
+    }
+
+    #[wasm_bindgen]
+    pub fn render(&self) {
+        log("Starting render call");
+        let frame = self.surface.get_current_texture().expect("Failed to get frame");
+        let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Render Encoder"),
+        });
+
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            });
+
+            render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.draw(0..2, 0..1);
+        }
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+        frame.present();
+        log("Frame submitted and presented");
     }
 }

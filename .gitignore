@@ -167,3 +167,36 @@ cython_debug/
 
 # VS Code settings
 .vscode/
+
+
+
+# =========================
+# Rust / WASM
+# =========================
+target/
+Cargo.lock
+pkg/
+*.wasm
+
+# =========================
+# Node / Vite
+# =========================
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# =========================
+# Web build artifacts
+# =========================
+*.js.map
+
+# =========================
+# OS / misc
+# =========================
+.DS_Store
+*~
+*.log
+tmp/
+
+

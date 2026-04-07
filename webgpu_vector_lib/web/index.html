@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGPU Vector Graphics</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background-color: black;
+  }
+
+  canvas {
+    display: block;
+    background-color: black;
+  }
+</style>
+</head>
+<body>
+    Test WebGPU Vector Graphics
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <script type="module">
+        import init, { WebGPU } from "@pkg/webgpu_vector_lib.js";
+
+        async function run() {
+            await init();
+            const gpu = await new WebGPU("canvas");
+            gpu.render();  // Calls Rust render function
+        }
+        
+        console.log("Running WebGPU...");
+        run();
+    </script>
+
+</body>
+</html>
