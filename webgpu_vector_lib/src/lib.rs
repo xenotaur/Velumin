@@ -1,9 +1,9 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wgpu::util::DeviceExt;
 
 #[wasm_bindgen]
 extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
 }
 
@@ -13,15 +13,8 @@ pub struct WebGPU {
     queue: wgpu::Queue,
     #[allow(dead_code)]
     config: wgpu::SurfaceConfiguration,
-    vertex_buffer: wgpu::Buffer,
     render_pipeline: wgpu::RenderPipeline,
     surface: wgpu::Surface,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-struct Vertex {
-    position: [f32; 2],
 }
 
 #[wasm_bindgen]
@@ -78,18 +71,6 @@ impl WebGPU {
         surface.configure(&device, &config);
         log("Surface configured");
 
-        let line_vertices = [
-            Vertex { position: [-0.5, 0.0] },
-            Vertex { position: [ 0.5, 0.0] },
-        ];
-
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Line Vertex Buffer"),
-            contents: bytemuck::cast_slice(&line_vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-        log("Vertex buffer created");
-
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Line Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/line.wgsl").into()),
@@ -108,15 +89,7 @@ impl WebGPU {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
-                    step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &[wgpu::VertexAttribute {
-                        format: wgpu::VertexFormat::Float32x2,
-                        offset: 0,
-                        shader_location: 0,
-                    }],
-                }],
+                buffers: &[],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -128,7 +101,7 @@ impl WebGPU {
                 })],
             }),
             primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::LineList,
+                topology: wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: None,
@@ -146,7 +119,7 @@ impl WebGPU {
         });
         log("Render pipeline created");
 
-        Ok(WebGPU { device, queue, config, vertex_buffer, render_pipeline, surface })
+        Ok(WebGPU { device, queue, config, render_pipeline, surface })
     }
 
     #[wasm_bindgen]
@@ -174,8 +147,16 @@ impl WebGPU {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.draw(0..2, 0..1);
+            render_pass.set_viewport(
+                0.0,
+                0.0,
+                self.config.width as f32,
+                self.config.height as f32,
+                0.0,
+                1.0,
+            );
+            render_pass.set_scissor_rect(0, 0, self.config.width, self.config.height);
+            render_pass.draw(0..6, 0..1);
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));

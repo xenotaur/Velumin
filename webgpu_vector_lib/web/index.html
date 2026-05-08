@@ -9,16 +9,18 @@
     margin: 0;
     padding: 0;
     background-color: black;
+    overflow: hidden;
   }
 
   canvas {
     display: block;
+    width: 100vw;
+    height: 100vh;
     background-color: black;
   }
 </style>
 </head>
 <body>
-    Test WebGPU Vector Graphics
     <canvas id="canvas" width="800" height="600"></canvas>
     <script type="module">
         import init, { WebGPU } from "@pkg/webgpu_vector_lib.js";
