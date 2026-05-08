@@ -10,8 +10,8 @@
 
 ## Goals and Direction
 - Goal: create Velumin as a reusable retro vector-graphics library for game developers.
-- Near-term focus: keep the adopted DP-0001 WebGPU baseline stable while selecting the next workstream.
-- Likely next technical directions are DP-0004 script-first validation, DP-0002 architecture splitting, or production glow tuning.
+- Near-term focus: keep the adopted DP-0001 WebGPU baseline and DP-0004 validation workflow stable while selecting the next workstream.
+- Likely next technical directions are DP-0002 architecture splitting, DP-0003 scene/material modeling, browser visual validation, or production glow tuning.
 
 ## Design Snapshot
 - Authoritative intent lives in `principles/`, `goal/`, and `roadmap/`.
@@ -22,12 +22,12 @@
 
 ## Current Status Snapshot
 - Health: yellow.
-- Velumin has a visible identity and a working browser/WebGPU baseline, but validation commands, public API shape, production glow behavior, and broader architecture boundaries remain incomplete.
+- Velumin has a visible identity, a working browser/WebGPU baseline, and a script-first validation workflow, but public API shape, production glow behavior, browser visual validation, and broader architecture boundaries remain incomplete.
 
 ## Known Unknowns
 - Exact public API shape for vector drawing.
 - Supported browsers and fallback expectations.
-- Build, test, demo, and CI validation workflow.
+- Browser visual validation workflow.
 - Named ownership and review expectations.
 - Release or packaging strategy.
 - Whether WebGL2 fallback is worth a future compatibility workstream.

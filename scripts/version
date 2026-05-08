@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WEB_DIR="$ROOT/webgpu_vector_lib/web"
+
+print_version() {
+  local label="$1"
+  shift
+
+  printf '%-10s ' "$label"
+  if "$@" 2>/dev/null; then
+    return 0
+  fi
+  echo "not available"
+}
+
+print_version "rustc" rustc --version
+print_version "cargo" cargo --version
+print_version "rustfmt" rustfmt --version
+print_version "clippy" cargo clippy --version
+print_version "wasm-pack" wasm-pack --version
+print_version "node" node --version
+print_version "npm" npm --version
+print_version "vite" npm --prefix "$WEB_DIR" exec vite -- --version

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WEB_DIR="$ROOT/webgpu_vector_lib/web"
+
+echo "==> Ensuring Rust components and targets"
+rustup component add rustfmt clippy
+rustup target add wasm32-unknown-unknown
+
+echo "==> Installing npm dependencies"
+npm ci --prefix "$WEB_DIR"
+
+if command -v wasm-pack >/dev/null 2>&1; then
+  echo "==> wasm-pack found: $(wasm-pack --version)"
+elif [[ "${CI:-}" == "true" ]]; then
+  echo "==> Installing wasm-pack for CI"
+  cargo install wasm-pack --locked
+else
+  echo "wasm-pack is required. Install it with: cargo install wasm-pack --locked" >&2
+  exit 1
+fi

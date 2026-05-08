@@ -1,13 +1,19 @@
 ---
 id: DP-0004
 title: Script-First Validation Workflow
-status: proposed
+status: adopted
 owner: project maintainers
 created: 2026-05-08
+adopted: 2026-05-08
+implementation_status: implemented
+implemented_by:
+  - WI-CI-0001
+  - WI-CI-0002
+evidence:
+  - EV-0007
 scope: developer workflow and continuous integration
 depends_on:
   - DP-0001
-  - DP-0002
 ---
 
 # Script-First Validation Workflow
@@ -16,6 +22,14 @@ depends_on:
 Adopt a script-first validation workflow for Velumin. Repository-owned scripts should be the canonical contract for local development, CI, and agent environments. GitHub Actions should call those scripts instead of duplicating validation logic directly in workflow YAML.
 
 This adapts the workflow shape used by Logical Robotics Harness while replacing Python-specific checks with Rust, WASM, npm, Vite, and browser-rendering checks appropriate for Velumin.
+
+## Adoption Status
+Adopted on 2026-05-08 as the active follow-up workstream after DP-0001. The core implementation is tracked by:
+
+- `WI-CI-0001`: add script-first local validation;
+- `WI-CI-0002`: add GitHub Actions validation.
+
+Implementation evidence is recorded in `project/evidence/EV-0007.md`. Browser visual smoke, workflow linting, cargo-deny, Dependency Review, Dependabot, and broader supply-chain policy remain deferred follow-up work.
 
 ## Context
 Velumin is currently a Rust/WASM/Vite project. The browser baseline is documented in the root `README.md`:
@@ -28,7 +42,7 @@ npm run build
 npm run dev
 ```
 
-The project already has a useful `npm run baseline` wrapper under `webgpu_vector_lib/web/package.json`, but the repository does not yet have a top-level validation contract analogous to LRH's script workflow.
+At proposal time, the project already had a useful `npm run baseline` wrapper under `webgpu_vector_lib/web/package.json`, but the repository did not yet have a top-level validation contract analogous to LRH's script workflow.
 
 LRH's relevant design lesson is not Python itself. The useful pattern is that humans, CI, and coding agents all use the same repository scripts as the source of truth. Velumin should preserve that property while using idiomatic Rust and web tooling underneath.
 

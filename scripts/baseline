@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MANIFEST="$ROOT/webgpu_vector_lib/Cargo.toml"
+WEB_DIR="$ROOT/webgpu_vector_lib/web"
+
+cargo check --manifest-path "$MANIFEST" --target wasm32-unknown-unknown
+wasm-pack build "$ROOT/webgpu_vector_lib" --target web
+npm run build --prefix "$WEB_DIR"

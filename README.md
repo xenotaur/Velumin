@@ -6,6 +6,17 @@ Velumin is a retro vector-graphics library.
 
 The current browser baseline is a Rust/WASM/Vite demo that renders a white line on a black canvas. Preserve this signal before changing renderer dependencies or architecture. The crate currently requires Rust 1.87 or newer.
 
+## Canonical Local Validation
+
+From the repository root:
+
+```sh
+scripts/develop
+scripts/validate
+```
+
+`scripts/validate` is the canonical local validation command. It reports tool versions, checks formatting, runs Clippy with warnings denied, runs Rust tests, and rebuilds the Rust/WASM/Vite browser baseline.
+
 From `webgpu_vector_lib/`:
 
 ```sh

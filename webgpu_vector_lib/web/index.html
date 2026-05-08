@@ -62,7 +62,7 @@
         async function run() {
             try {
                 await init();
-                const gpu = await new WebGPU("canvas");
+                const gpu = await WebGPU.create("canvas");
                 renderOrReport(gpu);
                 window.addEventListener("resize", () => renderOrReport(gpu));
             } catch (error) {

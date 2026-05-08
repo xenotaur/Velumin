@@ -10,7 +10,8 @@ owner: project maintainers
 ## Status
 - LRH bootstrap is complete.
 - DP-0001 is adopted and implemented as the current browser/WebGPU rendering baseline.
-- DP-0002 remains the next architectural horizon after the browser/WebGPU path, while DP-0004 defines the proposed validation-workflow workstream.
+- DP-0004 is adopted and implemented as the core local/CI validation workflow.
+- DP-0002 remains the next architectural horizon after the browser/WebGPU path.
 
 ## Completed Direction: DP-0001 Modern WebGPU-First Rendering
 - The browser white-line smoke demo has been preserved as the baseline.
@@ -25,13 +26,14 @@ owner: project maintainers
 - Keep the same vector command and renderer model usable by browser and desktop targets where possible.
 - Treat native `winit` work as a staged architecture milestone, not as a blocker for browser work.
 
-## Workflow Horizon: DP-0004 Script-First Validation
-- Add repository-owned validation scripts so local development, CI, and agent environments use the same command contract.
-- Keep GitHub Actions focused on setup, caching, and calling repository scripts.
-- Add visual/browser smoke validation after the script layer is stable.
+## Completed Workflow: DP-0004 Script-First Validation
+- Repository-owned validation scripts define the shared local, CI, and agent command contract.
+- GitHub Actions focuses on setup, caching, and calling repository scripts.
+- Browser visual smoke validation remains a later extension after the core script lane.
 
 ## Later Directions
 - Mature glow and compositing after modern WebGPU rendering and triangle-based vector primitives are reliable.
+- Add visual/browser smoke validation on top of the script-first workflow.
 - Add a native `winit` shell that renders the same smoke scenes through the shared renderer.
 - Explore optional Bevy integration only after the core and renderer boundaries are stable.
 - Add richer examples that demonstrate Asteroids-like, Star Castle-like, or Space War-like visuals without turning Velumin into a full game project.
@@ -41,4 +43,5 @@ owner: project maintainers
 - Chrome and Edge desktop are the first browser validation targets.
 - WebGL2 compatibility is optional and deferred.
 - Rendering work must include a visible smoke check or pixel/screenshot validation path.
-- DP-0002 and DP-0004 are proposed follow-up directions after the adopted DP-0001 baseline.
+- `scripts/validate` is the canonical local validation command.
+- DP-0002 and DP-0003 are proposed follow-up directions after the adopted DP-0001 and DP-0004 baselines.

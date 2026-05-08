@@ -44,17 +44,18 @@
 - DP-0001 established modern `wgpu`, browser WebGPU as the primary path, explicit browser capability handling, thick-line triangle tessellation, and a glow-pipeline spike.
 - DP-0001 evidence is recorded in `project/evidence/EV-0002.md` through `project/evidence/EV-0006.md`.
 - WebGL2 fallback remains optional and deferred unless maintainers explicitly prioritize it later.
+- `DP-0004 Script-First Validation Workflow` is adopted and implemented as the canonical local and CI validation contract.
+- DP-0004 establishes top-level validation scripts, Rust toolchain pinning, a Clippy gate with warnings denied, and a GitHub Actions workflow that calls `scripts/validate`.
 
 ## Active Design Proposals
 - `DP-0002 Cross-Platform Vector Renderer Architecture` is the next architecture horizon: platform-neutral core, shared `wgpu` renderer, browser frontend, and later native `winit` frontend.
 - `DP-0003 Extensible 2D Scene and Material Model` proposes a broader scene/material model beyond vector-display emulation.
-- `DP-0004 Script-First Validation Workflow` proposes LRH-style local and CI validation scripts for the Rust/WASM/Vite workflow.
 
 ## Future Extensions (Non-binding)
 - A stable public API for vector primitives and scenes.
 - Production rendering controls for glow, persistence, intensity, background fade, or other retro vector-display effects if they support the project goal.
 - Example scenes that demonstrate the intended game aesthetic.
-- Automated validation of builds, shaders, and browser-rendered output.
+- Automated browser-rendered visual validation.
 
 ## Unknowns / TODO
 - TODO: Confirm whether Velumin should expose a high-level scene graph, immediate-mode drawing API, retained primitives, or another API style.
