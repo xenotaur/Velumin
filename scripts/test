@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MANIFEST="$ROOT/webgpu_vector_lib/Cargo.toml"
+
+cargo test --manifest-path "$MANIFEST"

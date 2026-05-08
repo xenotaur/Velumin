@@ -106,8 +106,8 @@ struct Renderer {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[cfg(target_arch = "wasm32")]
 impl WebGPU {
-    #[wasm_bindgen(constructor)]
-    pub async fn new(canvas_id: &str) -> Result<WebGPU, JsValue> {
+    #[wasm_bindgen(js_name = create)]
+    pub async fn create(canvas_id: &str) -> Result<WebGPU, JsValue> {
         console_error_panic_hook::set_once();
         log("Starting WebGPU setup");
 

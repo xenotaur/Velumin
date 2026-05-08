@@ -11,7 +11,7 @@ health: yellow
 ## Summary
 - Velumin is an early-stage retro vector-graphics library with an adopted Rust/WASM/WebGPU browser rendering baseline.
 - LRH project-control artifacts have been bootstrapped to make intent, constraints, evidence, and uncertainty explicit.
-- DP-0001 is adopted and implemented; DP-0002, DP-0003, and DP-0004 remain proposed follow-up design directions.
+- DP-0001 and DP-0004 are adopted and implemented; DP-0002 and DP-0003 remain proposed follow-up design directions.
 
 ## Evidence Basis
 - `README.md` identifies Velumin as a retro vector-graphics library.
@@ -22,13 +22,15 @@ health: yellow
 - `webgpu_vector_lib/web/index.html` shows a browser canvas harness.
 - `webgpu_vector_lib/web/package.json` defines Rust/WASM/Vite baseline commands.
 - `project/evidence/EV-0002.md` through `project/evidence/EV-0006.md` record DP-0001 implementation verification.
+- `project/evidence/EV-0007.md` records DP-0004 script-first validation and CI verification.
+- `scripts/validate` is the canonical local validation command.
 
 ## Current Health
-- Yellow: project identity and the browser/WebGPU baseline are visible, but public API design, script-first validation, production glow behavior, and cross-platform architecture are not yet complete.
+- Yellow: project identity, browser/WebGPU baseline, and core validation workflow are visible, but public API design, production glow behavior, browser visual validation, and cross-platform architecture are not yet complete.
 
 ## Active Priorities
-- Preserve the adopted DP-0001 browser/WebGPU baseline.
-- Select the next workstream: DP-0004 validation workflow, DP-0002 architecture split, or production glow tuning.
+- Preserve the adopted DP-0001 browser/WebGPU baseline and DP-0004 validation workflow.
+- Select the next workstream: DP-0002 architecture split, DP-0003 scene/material model, visual browser validation, or production glow tuning.
 - Keep design proposal lifecycle metadata and directories aligned.
 
 ## Risks
@@ -37,7 +39,7 @@ health: yellow
 - The current glow path is a spike; production rendering quality should not be overstated.
 
 ## Recommended Next Actions
-1. Implement the DP-0004 script-first validation workflow, or explicitly select DP-0002 as the next architecture workstream.
+1. Explicitly select DP-0002, DP-0003, visual browser validation, or production glow tuning as the next workstream.
 2. Define the first public vector primitive or scene API target.
 3. Turn the glow spike into a scoped production work item if maintainers want glow tuning next.
-4. Add browser visual validation once the script layer exists.
+4. Add browser visual validation on top of the script layer.

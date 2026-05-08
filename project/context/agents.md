@@ -24,10 +24,11 @@
 - Repository identity is Velumin.
 - Current implementation evidence points to Rust, WASM, `wasm-bindgen`, `wgpu`, WGSL shaders, and a Vite browser harness.
 - Current rendering signal is the adopted DP-0001 browser/WebGPU baseline: thick vector primitives on a black canvas with capability handling and a prototype glow path.
+- Current validation signal is the adopted DP-0004 script-first workflow: `scripts/validate` is the canonical local validation command and GitHub Actions calls it.
 
 ## Confidence / Uncertainty Notes
 - High confidence: project identity, broad retro vector-graphics goal, current Rust/WASM/WebGPU implementation signals.
-- Medium confidence: near-term need to add script-first build/demo/validation workflow.
+- Medium confidence: near-term need to add browser visual validation on top of the script workflow.
 - Low confidence: final API model, WebGL2 fallback value, browser support matrix, CI policy, and release packaging.
 
 ## Non-authoritative Notice
