@@ -19,8 +19,8 @@ depends_on: WI-RENDER-0004---
 - Treat this as a spike, not a production renderer commitment.
 
 ## Evidence
-- DP-0001: `project/design/proposals/DP-0001-modern-webgpu-rendering.md`
-- DP-0002: `project/design/proposals/DP-0002-cross-platform-renderer-architecture.md`
+- DP-0001: `project/design/proposals/adopted/DP-0001-modern-webgpu-rendering.md`
+- DP-0002: `project/design/proposals/proposed/DP-0002-cross-platform-renderer-architecture.md`
 - Primitive work item: `project/work_items/WI-RENDER-0004.md`
 - Glow spike verification: `project/evidence/EV-0006.md`
 

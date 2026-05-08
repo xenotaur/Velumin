@@ -9,21 +9,26 @@ owner: project maintainers
 
 ## Status
 - LRH bootstrap is complete.
-- The active roadmap now follows DP-0001, with DP-0002 recorded as the next architectural horizon after the browser/WebGPU path is stable.
+- DP-0001 is adopted and implemented as the current browser/WebGPU rendering baseline.
+- DP-0002 remains the next architectural horizon after the browser/WebGPU path, while DP-0004 defines the proposed validation-workflow workstream.
 
-## Active Direction: DP-0001 Modern WebGPU-First Rendering
-- Preserve the current browser white-line smoke demo as the baseline before making renderer changes.
-- Upgrade from the current `wgpu 0.16` + WebGL compatibility path to a modern WebGPU-first `wgpu` path.
-- Keep Chrome and Edge desktop as the first Tier 1 validation targets.
-- Defer WebGL2 fallback work unless maintainers later make it an explicit requirement.
-- Require visual validation so browser rendering regressions do not silently become black-canvas failures.
-- Introduce a platform boundary that keeps browser setup in the web adapter and shared GPU resource ownership in renderer state.
-- Move core vector rendering away from GPU line primitives by generating thick-line triangles.
+## Completed Direction: DP-0001 Modern WebGPU-First Rendering
+- The browser white-line smoke demo has been preserved as the baseline.
+- The web rendering path has been upgraded to modern WebGPU-first `wgpu`.
+- Browser setup and capability handling are separated from renderer resource ownership.
+- Core vector rendering uses CPU-generated thick-line triangles rather than GPU line primitives.
+- A glow-pipeline spike exists as proof of rendering flow, not final production tuning.
+- WebGL2 fallback remains deferred unless maintainers later make it an explicit requirement.
 
 ## Next Horizon: DP-0002 Cross-Platform Renderer Architecture
-- After DP-0001 establishes a stable browser/WebGPU baseline, split Velumin toward a platform-neutral core, shared `wgpu` renderer, browser frontend, and later native desktop frontend.
+- After the DP-0001 browser/WebGPU baseline, split Velumin toward a platform-neutral core, shared `wgpu` renderer, browser frontend, and later native desktop frontend.
 - Keep the same vector command and renderer model usable by browser and desktop targets where possible.
-- Treat native `winit` work as the next staged architecture milestone, not as a blocker for the DP-0001 browser modernization.
+- Treat native `winit` work as a staged architecture milestone, not as a blocker for browser work.
+
+## Workflow Horizon: DP-0004 Script-First Validation
+- Add repository-owned validation scripts so local development, CI, and agent environments use the same command contract.
+- Keep GitHub Actions focused on setup, caching, and calling repository scripts.
+- Add visual/browser smoke validation after the script layer is stable.
 
 ## Later Directions
 - Mature glow and compositing after modern WebGPU rendering and triangle-based vector primitives are reliable.
@@ -36,4 +41,4 @@ owner: project maintainers
 - Chrome and Edge desktop are the first browser validation targets.
 - WebGL2 compatibility is optional and deferred.
 - Rendering work must include a visible smoke check or pixel/screenshot validation path.
-- DP-0002 is staged after DP-0001 rather than replacing the browser-first modernization focus.
+- DP-0002 and DP-0004 are proposed follow-up directions after the adopted DP-0001 baseline.

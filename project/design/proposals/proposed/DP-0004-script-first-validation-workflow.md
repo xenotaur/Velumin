@@ -1,7 +1,7 @@
 ---
 id: DP-0004
 title: Script-First Validation Workflow
-status: draft
+status: proposed
 owner: project maintainers
 created: 2026-05-08
 scope: developer workflow and continuous integration

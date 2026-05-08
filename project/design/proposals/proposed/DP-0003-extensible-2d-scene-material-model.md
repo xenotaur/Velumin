@@ -1,7 +1,7 @@
 ---
 id: DP-0003
 title: Extensible 2D Scene and Material Model
-status: draft
+status: proposed
 owner: project maintainers
 created: 2026-05-08
 scope: velumin core graphics model
@@ -228,8 +228,8 @@ This should reuse much of the post-processing architecture built for vector glow
 - What asset handle model should bridge browser, desktop, and later Bevy integration?
 
 ## References
-- DP-0001: `project/design/proposals/DP-0001-modern-webgpu-rendering.md`
-- DP-0002: `project/design/proposals/DP-0002-cross-platform-renderer-architecture.md`
+- DP-0001: `project/design/proposals/adopted/DP-0001-modern-webgpu-rendering.md`
+- DP-0002: `project/design/proposals/proposed/DP-0002-cross-platform-renderer-architecture.md`
 - W3C Compositing and Blending: https://www.w3.org/TR/compositing-1/
 - W3C CSS Masking: https://www.w3.org/TR/css-masking-1/
 - `wgpu` texture docs: https://docs.rs/wgpu/latest/wgpu/struct.Texture.html

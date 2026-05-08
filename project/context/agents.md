@@ -23,13 +23,12 @@
 ## Current Evidence Summary
 - Repository identity is Velumin.
 - Current implementation evidence points to Rust, WASM, `wasm-bindgen`, `wgpu`, WGSL shaders, and a Vite browser harness.
-- Current rendering signal is minimal: a simple white line-like shape on a black canvas.
+- Current rendering signal is the adopted DP-0001 browser/WebGPU baseline: thick vector primitives on a black canvas with capability handling and a prototype glow path.
 
 ## Confidence / Uncertainty Notes
 - High confidence: project identity, broad retro vector-graphics goal, current Rust/WASM/WebGPU implementation signals.
-- Medium confidence: near-term need to stabilize build/demo/validation workflow.
-- Low confidence: final API model, backend strategy, browser support, CI policy, and release packaging.
+- Medium confidence: near-term need to add script-first build/demo/validation workflow.
+- Low confidence: final API model, WebGL2 fallback value, browser support matrix, CI policy, and release packaging.
 
 ## Non-authoritative Notice
 - This file is derived from `context/humans.md` and adds no independent commitments.
-

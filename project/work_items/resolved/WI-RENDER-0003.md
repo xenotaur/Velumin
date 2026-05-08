@@ -18,8 +18,8 @@ depends_on: WI-RENDER-0002---
 - Add explicit resize and surface reconfiguration behavior.
 
 ## Evidence
-- DP-0001: `project/design/proposals/DP-0001-modern-webgpu-rendering.md`
-- DP-0002: `project/design/proposals/DP-0002-cross-platform-renderer-architecture.md`
+- DP-0001: `project/design/proposals/adopted/DP-0001-modern-webgpu-rendering.md`
+- DP-0002: `project/design/proposals/proposed/DP-0002-cross-platform-renderer-architecture.md`
 - Current combined browser/renderer setup: `webgpu_vector_lib/src/lib.rs`
 - Boundary verification: `project/evidence/EV-0004.md`
 

@@ -18,7 +18,7 @@ depends_on: WI-RENDER-0001---
 - Keep the smoke demo visually equivalent to the preserved baseline.
 
 ## Evidence
-- DP-0001: `project/design/proposals/DP-0001-modern-webgpu-rendering.md`
+- DP-0001: `project/design/proposals/adopted/DP-0001-modern-webgpu-rendering.md`
 - Current dependency declaration: `webgpu_vector_lib/Cargo.toml`
 - Current renderer setup: `webgpu_vector_lib/src/lib.rs`
 - Baseline work item: `project/work_items/WI-RENDER-0001.md`

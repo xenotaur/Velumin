@@ -18,7 +18,7 @@ depends_on: WI-BOOTSTRAP-0001---
 - Record browser, OS, and GPU/adapter information when available during validation.
 
 ## Evidence
-- DP-0001: `project/design/proposals/DP-0001-modern-webgpu-rendering.md`
+- DP-0001: `project/design/proposals/adopted/DP-0001-modern-webgpu-rendering.md`
 - Current Rust entrypoint: `webgpu_vector_lib/src/lib.rs`
 - Current shader smoke signal: `webgpu_vector_lib/shaders/line.wgsl`
 - Current browser harness: `webgpu_vector_lib/web/index.html`

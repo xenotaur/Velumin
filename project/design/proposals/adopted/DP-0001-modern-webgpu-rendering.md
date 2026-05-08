@@ -1,16 +1,28 @@
 ---
 id: DP-0001
 title: Modern WebGPU-First Rendering Path
-status: draft
+status: adopted
 owner: project maintainers
 created: 2026-05-07
+adopted: 2026-05-08
 scope: webgpu_vector_lib
 ---
 
 # Modern WebGPU-First Rendering Path
 
 ## Summary
-Upgrade Velumin from the current `wgpu 0.16` + WebGL compatibility path to a modern `wgpu` WebGPU-first renderer. The goal is to keep the recently repaired browser smoke test as a baseline, then migrate the rendering stack toward native browser WebGPU for predictable shaders, render-to-texture passes, and glow/compositing effects.
+Upgrade Velumin from the previous `wgpu 0.16` + WebGL compatibility path to a modern `wgpu` WebGPU-first renderer. The goal is to keep the repaired browser smoke test as a baseline, then migrate the rendering stack toward native browser WebGPU for predictable shaders, render-to-texture passes, and glow/compositing effects.
+
+## Adoption Status
+Adopted on 2026-05-08 after completion of the DP-0001 workstream:
+
+- `WI-RENDER-0001`: preserve browser rendering baseline;
+- `WI-RENDER-0002`: upgrade to modern WebGPU-first `wgpu`;
+- `WI-RENDER-0003`: introduce platform boundary and capability handling;
+- `WI-RENDER-0004`: add minimal vector primitive API and thick-line tessellation;
+- `WI-RENDER-0005`: spike glow pipeline after modern baseline.
+
+Implementation evidence is recorded in `project/evidence/EV-0002.md` through `project/evidence/EV-0006.md`. Production glow tuning and broader architecture splitting remain follow-up work under later design proposals.
 
 ## Context
 Velumin is intended to be a retro vector-graphics library suitable for Space War, Asteroids, and Star Castle-like visuals. That implies:
@@ -21,7 +33,7 @@ Velumin is intended to be a retro vector-graphics library suitable for Space War
 - predictable browser behavior;
 - eventual room for native/standalone builds.
 
-The current implementation is a minimal WASM browser harness using `wgpu = "0.16"` with the `webgl` feature. As of this proposal, docs.rs lists `wgpu 29.0.1` as the latest crate line and shows `0.16.3` as a July 2023 release. Current `wgpu` feature metadata includes `webgpu` as a default feature and `webgl` as a separate compatibility feature.
+At proposal time, the implementation was a minimal WASM browser harness using `wgpu = "0.16"` with the `webgl` feature. As of this proposal, docs.rs listed `wgpu 29.0.1` as the latest crate line and showed `0.16.3` as a July 2023 release. Current `wgpu` feature metadata included `webgpu` as a default feature and `webgl` as a separate compatibility feature.
 
 ## Problem
 The existing path works only as a fragile prototype:

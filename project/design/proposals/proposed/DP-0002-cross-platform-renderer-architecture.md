@@ -1,7 +1,7 @@
 ---
 id: DP-0002
 title: Cross-Platform Vector Renderer Architecture
-status: draft
+status: proposed
 owner: project maintainers
 created: 2026-05-07
 scope: velumin architecture
@@ -210,7 +210,7 @@ Integrate Velumin-like visuals into Unity, Godot, or Unreal.
 - What level of visual equivalence is required between browser and desktop outputs?
 
 ## References
-- DP-0001: `project/design/proposals/DP-0001-modern-webgpu-rendering.md`
+- DP-0001: `project/design/proposals/adopted/DP-0001-modern-webgpu-rendering.md`
 - `wgpu` docs: https://docs.rs/crate/wgpu/latest
 - `winit` docs: https://docs.rs/winit/latest/winit/
 - Steam platforms documentation: https://partner.steamgames.com/doc/store/application/platforms

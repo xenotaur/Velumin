@@ -1,6 +1,6 @@
 ---
 id: FOCUS-RENDER-0001
-title: WebGPU Rendering Modernization Focus
+title: Post-WebGPU Modernization Focus
 status: active
 priority: high
 owner: project maintainers
@@ -9,31 +9,28 @@ owner: project maintainers
 # Current Focus
 
 ## Active Priority
-- Execute the DP-0001 WebGPU-first rendering modernization plan while preserving the browser smoke baseline.
+- Keep the adopted DP-0001 browser/WebGPU baseline stable while selecting the next workstream.
 
 ## Why This Appears Current
 - The LRH control plane has been bootstrapped and `WI-BOOTSTRAP-0001` is done.
-- DP-0001 defines the active path from the current `wgpu 0.16` + WebGL compatibility prototype toward a modern WebGPU-first renderer.
-- DP-0002 defines the next-horizon cross-platform architecture, but it depends on stabilizing the browser/WebGPU foundation first.
+- DP-0001 is adopted and implemented as the current browser/WebGPU rendering baseline.
+- DP-0002 defines the next-horizon cross-platform architecture.
+- DP-0004 defines the proposed script-first validation workflow for local development and CI.
 
 ## Priorities
-1. Preserve the current white-line browser rendering baseline with documented clean-build commands.
-2. Upgrade the web rendering path to modern WebGPU-first `wgpu` while keeping the smoke output visually equivalent.
-3. Introduce a small platform boundary between browser canvas setup and reusable renderer state.
-4. Add startup capability handling for unsupported browsers, missing adapters, blocked adapters, and insufficient limits.
-5. Introduce minimal line/polyline vector commands with CPU-side thick-line triangle generation and GPU buffer batching.
-6. Defer glow/composite work until the modern baseline and primitive path are stable.
+1. Preserve the current WebGPU browser rendering baseline and documented clean-build commands.
+2. Keep DP-0001 adopted design, work items, roadmap, focus, and evidence aligned.
+3. Choose whether the next workstream is DP-0004 validation workflow, DP-0002 architecture split, or production glow tuning.
+4. Treat glow/composite production tuning as follow-up work separate from the completed spike.
 
 ## Non-Goals
 - Do not implement full games as part of the rendering modernization work.
 - Do not make WebGL2 fallback a milestone unless maintainers explicitly prioritize it later.
-- Do not begin native desktop implementation until the DP-0001 browser baseline work is complete.
-- Do not add glow/bloom as production renderer behavior before the modern WebGPU baseline and thick-line primitive path are reliable.
+- Do not begin native desktop implementation until maintainers explicitly select the DP-0002 workstream.
+- Do not treat the glow spike as final production glow behavior.
 
 ## Exit Criteria
-- Clean checkout build commands are documented and verified for Rust/WASM/Vite development.
-- The browser demo shows a visible white line on black after a clean rebuild.
-- Browser startup, pipeline creation, render call, and frame presentation have observable validation.
-- Unsupported-browser and no-adapter paths show clear user-facing messaging rather than only a blank canvas.
-- Core vector rendering no longer depends on GPU line primitives.
-- DP-0002 remains represented as the next staged architecture horizon after DP-0001.
+- DP-0001 remains represented as adopted design rather than active migration work.
+- The next active workstream is selected and represented in roadmap, focus, and work items.
+- The browser demo remains recoverable through the documented Rust/WASM/Vite baseline.
+- DP-0002 and DP-0004 remain represented as proposed follow-up directions until selected.

@@ -18,8 +18,8 @@ depends_on: WI-RENDER-0003---
 - Keep shader-generated geometry limited to smoke tests or fullscreen/pass-specific work.
 
 ## Evidence
-- DP-0001: `project/design/proposals/DP-0001-modern-webgpu-rendering.md`
-- DP-0002: `project/design/proposals/DP-0002-cross-platform-renderer-architecture.md`
+- DP-0001: `project/design/proposals/adopted/DP-0001-modern-webgpu-rendering.md`
+- DP-0002: `project/design/proposals/proposed/DP-0002-cross-platform-renderer-architecture.md`
 - Current shader-generated smoke geometry: `webgpu_vector_lib/shaders/line.wgsl`
 - Primitive verification: `project/evidence/EV-0005.md`
 
