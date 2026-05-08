@@ -57,6 +57,20 @@ Adopt a WebGPU-first architecture with a small platform boundary:
 
 The first rendering primitive should be a thick line generated as triangles. Avoid GPU line primitives as a core abstraction; browsers and backends differ too much for retro-vector aesthetics.
 
+## Browser Compatibility Strategy
+Use explicit support tiers so WebGPU-first does not accidentally imply universal browser support.
+
+| Tier | Target | Expected Support | Notes |
+| --- | --- | --- | --- |
+| Tier 1 | Chrome and Edge desktop on Windows and macOS | Primary supported web target | Best first target for the migration and visual smoke tests. |
+| Tier 1 | Chrome and Edge on ChromeOS | Primary supported web target | Validate if hardware is available. |
+| Tier 2 | Chrome on Android 12+ with supported Qualcomm/ARM GPUs | Supported after device testing | Treat mobile GPU and driver coverage as empirical, not assumed. |
+| Tier 2 | Safari on current macOS, iOS, and iPadOS releases with WebGPU enabled by default | Supported after Apple-device testing | Track exact OS/browser minimums in release notes once confirmed. |
+| Tier 2 | Firefox on currently supported WebGPU platforms | Supported after platform testing | Track platform gaps explicitly; do not assume parity with Chromium. |
+| Tier 3 | Linux browsers, older mobile devices, older Safari/Firefox versions, and browser/device combinations with blocked adapters | Best-effort or unsupported | Show a clear unsupported/limited-GPU message unless a fallback backend is intentionally added. |
+
+Development builds may run on `localhost`, but deployed browser demos require secure contexts because WebGPU is only exposed in secure browser contexts. The web adapter should detect unsupported browsers, missing adapters, blocked adapters, and insufficient limits/features before constructing the renderer.
+
 ## Migration Plan
 
 ### Phase 0: Baseline
@@ -75,6 +89,12 @@ The first rendering primitive should be a thick line generated as triangles. Avo
 - Move browser-specific setup out of the renderer core.
 - Introduce a small renderer state type that owns device, queue, surface config, pipelines, and resize behavior.
 - Keep canvas lookup, DPR calculation, and browser logging in the web adapter.
+- Add startup capability negotiation in the web adapter:
+  - detect missing `navigator.gpu`;
+  - handle `requestAdapter()` returning no adapter;
+  - choose the preferred canvas format through the platform API;
+  - check required features, limits, and texture capabilities before creating pipelines;
+  - report a user-facing unsupported or degraded-capability state rather than panicking or showing a black canvas.
 - Add explicit resize/reconfigure behavior.
 
 ### Phase 3: Vector Primitive API
@@ -103,10 +123,15 @@ The first rendering primitive should be a thick line generated as triangles. Avo
 - Rendered output is verified with a screenshot or pixel-level smoke check.
 - The renderer no longer depends on WebGL line primitives for core line rendering.
 - The upgraded dependency set is reflected in `Cargo.toml` and `Cargo.lock`.
+- Tier 1 browser targets are verified before the migration is considered complete.
+- Tier 2 browser targets are either verified or explicitly listed as unverified with known follow-up work.
+- Unsupported-browser and no-adapter paths show a clear message and do not leave a blank canvas as the only signal.
+- Visual validation records browser, OS, GPU/adapter name when available, and whether the backend is core WebGPU, compatibility mode, or fallback.
 
 ## Risks
 - Modern `wgpu` APIs may require nontrivial changes to surface creation, device descriptors, lifetime handling, and WASM features.
 - Native browser WebGPU availability may limit supported browsers compared with WebGL2.
+- Some users may have WebGPU disabled by browser policy, GPU blocklists, driver issues, insecure contexts, or unsupported hardware even when their browser family nominally supports WebGPU.
 - Maintaining both WebGPU and WebGL2 backends could slow development.
 - Glow passes will require more validation than the current single-pass smoke test.
 
