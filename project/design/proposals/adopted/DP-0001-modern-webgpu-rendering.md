@@ -5,6 +5,19 @@ status: adopted
 owner: project maintainers
 created: 2026-05-07
 adopted: 2026-05-08
+implementation_status: implemented
+implemented_by:
+  - WI-RENDER-0001
+  - WI-RENDER-0002
+  - WI-RENDER-0003
+  - WI-RENDER-0004
+  - WI-RENDER-0005
+evidence:
+  - EV-0002
+  - EV-0003
+  - EV-0004
+  - EV-0005
+  - EV-0006
 scope: webgpu_vector_lib
 ---
 

@@ -24,6 +24,7 @@
   - `adopted/`: design proposals accepted as part of the project design.
 - Future buckets may include `rejected/` and `superseded/` when the project needs those states.
 - A proposal path should agree with its `status` frontmatter where a matching bucket exists.
+- Adoption status and implementation status are separate. `status` records the design decision lifecycle; optional `implementation_status`, `implemented_by`, and `evidence` fields record delivery state and traceability to work items and evidence.
 
 ## Precedence and Interpretation Notes
 - Interpret project work in this order: principles -> goal -> roadmap -> focus -> work_items -> guardrails/runtime context.
