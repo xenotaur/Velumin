@@ -1,5 +1,5 @@
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
@@ -14,7 +14,7 @@ pub struct WebGPU {
     #[allow(dead_code)]
     config: wgpu::SurfaceConfiguration,
     render_pipeline: wgpu::RenderPipeline,
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'static>,
 }
 
 #[wasm_bindgen]
@@ -40,23 +40,36 @@ impl WebGPU {
         let instance = wgpu::Instance::default();
         log("Created wgpu instance");
 
-        let surface = wgpu::Instance::create_surface_from_canvas(&instance, canvas)
+        let surface = instance
+            .create_surface(wgpu::SurfaceTarget::Canvas(canvas))
             .map_err(|e| JsValue::from_str(&format!("Surface creation failed: {:?}", e)))?;
         log("Created surface from canvas");
 
-        let adapter = instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::HighPerformance,
-            compatible_surface: Some(&surface),
-            force_fallback_adapter: false,
-        }).await.ok_or_else(|| JsValue::from_str("Failed to get GPU adapter"))?;
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                compatible_surface: Some(&surface),
+                force_fallback_adapter: false,
+            })
+            .await
+            .map_err(|e| JsValue::from_str(&format!("Failed to get GPU adapter: {:?}", e)))?;
         let adapter_info = adapter.get_info();
-        log(&format!("Adapter found: {} ({:?})", adapter_info.name, adapter_info.backend));
+        log(&format!(
+            "Adapter found: {} ({:?})",
+            adapter_info.name, adapter_info.backend
+        ));
 
-        let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("WebGPU Device"),
-            features: wgpu::Features::empty(),
-            limits: wgpu::Limits::downlevel_webgl2_defaults(),
-        }, None).await.map_err(|e| JsValue::from_str(&format!("Device request error: {:?}", e)))?;
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("WebGPU Device"),
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits::downlevel_defaults(),
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
+                memory_hints: wgpu::MemoryHints::default(),
+                trace: wgpu::Trace::Off,
+            })
+            .await
+            .map_err(|e| JsValue::from_str(&format!("Device request error: {:?}", e)))?;
         log("Device and queue acquired");
 
         let config = wgpu::SurfaceConfiguration {
@@ -65,6 +78,7 @@ impl WebGPU {
             width,
             height,
             present_mode: wgpu::PresentMode::Fifo,
+            desired_maximum_frame_latency: 2,
             alpha_mode: wgpu::CompositeAlphaMode::Opaque,
             view_formats: vec![],
         };
@@ -80,7 +94,7 @@ impl WebGPU {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Pipeline Layout"),
             bind_group_layouts: &[],
-            push_constant_ranges: &[],
+            immediate_size: 0,
         });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -88,12 +102,14 @@ impl WebGPU {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
                 buffers: &[],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
                     blend: Some(wgpu::BlendState::REPLACE),
@@ -115,35 +131,54 @@ impl WebGPU {
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
-            multiview: None,
+            multiview_mask: None,
+            cache: None,
         });
         log("Render pipeline created");
 
-        Ok(WebGPU { device, queue, config, render_pipeline, surface })
+        Ok(WebGPU {
+            device,
+            queue,
+            config,
+            render_pipeline,
+            surface,
+        })
     }
 
     #[wasm_bindgen]
     pub fn render(&self) {
         log("Starting render call");
-        let frame = self.surface.get_current_texture().expect("Failed to get frame");
-        let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let frame = match self.surface.get_current_texture() {
+            wgpu::CurrentSurfaceTexture::Success(frame)
+            | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
+            status => panic!("Failed to get frame: {:?}", status),
+        };
+        let view = frame
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
+                    depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
             });
 
             render_pass.set_pipeline(&self.render_pipeline);

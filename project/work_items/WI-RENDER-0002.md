@@ -1,7 +1,7 @@
 ---
 id: WI-RENDER-0002
 title: Upgrade to Modern WebGPU-First wgpu
-status: planned
+status: done
 priority: high
 owner: project maintainers
 depends_on: WI-RENDER-0001
@@ -23,6 +23,7 @@ depends_on: WI-RENDER-0001
 - Current dependency declaration: `webgpu_vector_lib/Cargo.toml`
 - Current renderer setup: `webgpu_vector_lib/src/lib.rs`
 - Baseline work item: `project/work_items/WI-RENDER-0001.md`
+- Upgrade evidence: `project/evidence/EV-0003.md`
 
 ## Acceptance Criteria
 - `Cargo.toml` and `Cargo.lock` reflect the upgraded dependency set.
@@ -32,5 +33,4 @@ depends_on: WI-RENDER-0001
 - Browser console output reaches setup, pipeline creation, render call, and frame presentation without errors.
 
 ## Status
-- Planned after `WI-RENDER-0001`.
-
+- Done: `wgpu` is upgraded to `29.0.3`, the `webgl` feature is no longer used as the primary path, the WASM/Vite baseline passes, and browser logs show the `BrowserWebGpu` backend.

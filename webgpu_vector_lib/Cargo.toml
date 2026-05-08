@@ -2,13 +2,14 @@
 name = "webgpu_vector_lib"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.87"
 
 [dependencies]
 bytemuck = { version = "1.13", features = ["derive"] }
 console_error_panic_hook = "0.1"  # Improves debugging of Rust WASM panics
 wasm-bindgen = "0.2"   # Allows Rust to communicate with JavaScript
 wasm-bindgen-futures = "0.4"
-wgpu = { version = "0.16", features = ["webgl"] }
+wgpu = "29.0.3"
 web-sys = { version = "0.3", features = ["console", "HtmlCanvasElement", "Window", "Document"] }
 
 [lib]
