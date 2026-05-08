@@ -1,7 +1,7 @@
 ---
 id: WI-RENDER-0001
 title: Preserve Browser Rendering Baseline
-status: active
+status: done
 priority: high
 owner: project maintainers
 depends_on: WI-BOOTSTRAP-0001
@@ -33,5 +33,4 @@ depends_on: WI-BOOTSTRAP-0001
 - No renderer upgrade work begins without this baseline being recoverable.
 
 ## Status
-- Active: first DP-0001 implementation work item.
-
+- Done: build commands are documented, npm baseline scripts are available, and browser visual verification is recorded in `project/evidence/EV-0002.md`.

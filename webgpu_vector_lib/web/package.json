@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check:wasm": "cargo check --manifest-path ../Cargo.toml --target wasm32-unknown-unknown",
+    "build:wasm": "wasm-pack build .. --target web",
+    "build": "vite build",
+    "dev": "vite --host 127.0.0.1",
+    "baseline": "npm run check:wasm && npm run build:wasm && npm run build",
+    "test": "npm run baseline"
   },
   "keywords": [],
   "author": "",
