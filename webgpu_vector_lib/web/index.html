@@ -44,15 +44,21 @@
         import init, { WebGPU } from "@pkg/webgpu_vector_lib.js";
 
         const status = document.getElementById("status");
+        const params = new URLSearchParams(window.location.search);
+        const demo = params.get("demo") || "baseline";
 
         function showUnsupported(message) {
             status.textContent = message;
             status.dataset.visible = "true";
         }
 
-        function renderOrReport(gpu) {
+        function renderOrReport(gpu, time = performance.now()) {
             try {
-                gpu.render();
+                if (demo === "blasterites") {
+                    gpu.render_blasterites_tester(time);
+                } else {
+                    gpu.render();
+                }
             } catch (error) {
                 console.error(error);
                 showUnsupported(error instanceof Error ? error.message : String(error));
@@ -63,8 +69,17 @@
             try {
                 await init();
                 const gpu = await WebGPU.create("canvas");
-                renderOrReport(gpu);
-                window.addEventListener("resize", () => renderOrReport(gpu));
+                if (demo === "blasterites") {
+                    const animate = (time) => {
+                        renderOrReport(gpu, time);
+                        requestAnimationFrame(animate);
+                    };
+                    requestAnimationFrame(animate);
+                    window.addEventListener("resize", () => renderOrReport(gpu));
+                } else {
+                    renderOrReport(gpu);
+                    window.addEventListener("resize", () => renderOrReport(gpu));
+                }
             } catch (error) {
                 console.error(error);
                 showUnsupported(error instanceof Error ? error.message : String(error));

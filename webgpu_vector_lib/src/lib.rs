@@ -25,7 +25,7 @@ impl Vertex {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
@@ -87,6 +87,7 @@ struct Renderer {
     crisp_pipeline: wgpu::RenderPipeline,
     glow_pipeline: wgpu::RenderPipeline,
     composite_pipeline: wgpu::RenderPipeline,
+    tester_composite_pipeline: wgpu::RenderPipeline,
     composite_bind_group_layout: wgpu::BindGroupLayout,
     composite_bind_group: wgpu::BindGroup,
     surface: wgpu::Surface<'static>,
@@ -168,7 +169,17 @@ impl WebGPU {
         let window = web_sys::window().ok_or("No window available")?;
         let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
         self.renderer.resize(width, height);
-        self.renderer.render(&smoke_scene())
+        self.renderer.render(&smoke_scene(), false)
+    }
+
+    #[wasm_bindgen]
+    pub fn render_blasterites_tester(&mut self, time_ms: f64) -> Result<(), JsValue> {
+        let window = web_sys::window().ok_or("No window available")?;
+        let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
+        self.renderer.resize(width, height);
+        let wrapped_time_ms = time_ms.rem_euclid(BLASTERITES_CYCLE_MS as f64) as f32;
+        self.renderer
+            .render(&blasterites_tester_scene(wrapped_time_ms), true)
     }
 }
 
@@ -250,6 +261,12 @@ impl Renderer {
             label: Some("Glow Composite Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/composite.wgsl").into()),
         });
+        let tester_composite_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Tester Composite Shader"),
+            source: wgpu::ShaderSource::Wgsl(
+                include_str!("../shaders/tester_composite.wgsl").into(),
+            ),
+        });
 
         let composite_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -281,32 +298,21 @@ impl Renderer {
                 immediate_size: 0,
             });
 
-        let composite_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Glow Composite Pipeline"),
-            layout: Some(&composite_pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &composite_shader,
-                entry_point: Some("vs_main"),
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-                buffers: &[],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &composite_shader,
-                entry_point: Some("fs_main"),
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: None,
-            cache: None,
-        });
-        log("Glow composite pipeline created");
+        let composite_pipeline = create_composite_pipeline(
+            &device,
+            &composite_shader,
+            config.format,
+            &composite_pipeline_layout,
+            "Glow Composite Pipeline",
+        );
+        let tester_composite_pipeline = create_composite_pipeline(
+            &device,
+            &tester_composite_shader,
+            config.format,
+            &composite_pipeline_layout,
+            "Tester Composite Pipeline",
+        );
+        log("Glow composite pipelines created");
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vector Vertex Buffer"),
@@ -350,6 +356,7 @@ impl Renderer {
             crisp_pipeline,
             glow_pipeline,
             composite_pipeline,
+            tester_composite_pipeline,
             composite_bind_group_layout,
             composite_bind_group,
             surface,
@@ -392,7 +399,7 @@ impl Renderer {
         log(&format!("Surface reconfigured to {}x{}", width, height));
     }
 
-    fn render(&mut self, commands: &[VectorCommand]) -> Result<(), JsValue> {
+    fn render(&mut self, commands: &[VectorCommand], tester_effects: bool) -> Result<(), JsValue> {
         log("Starting render call");
         self.upload_vector_commands(commands);
 
@@ -471,7 +478,12 @@ impl Renderer {
                 multiview_mask: None,
             });
 
-            surface_pass.set_pipeline(&self.composite_pipeline);
+            let composite_pipeline = if tester_effects {
+                &self.tester_composite_pipeline
+            } else {
+                &self.composite_pipeline
+            };
+            surface_pass.set_pipeline(composite_pipeline);
             surface_pass.set_bind_group(0, &self.composite_bind_group, &[]);
             surface_pass.draw(0..3, 0..1);
 
@@ -568,6 +580,41 @@ fn create_vector_pipeline(
 }
 
 #[cfg(target_arch = "wasm32")]
+fn create_composite_pipeline(
+    device: &wgpu::Device,
+    shader: &wgpu::ShaderModule,
+    format: wgpu::TextureFormat,
+    layout: &wgpu::PipelineLayout,
+    label: &str,
+) -> wgpu::RenderPipeline {
+    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some(label),
+        layout: Some(layout),
+        vertex: wgpu::VertexState {
+            module: shader,
+            entry_point: Some("vs_main"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            buffers: &[],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: shader,
+            entry_point: Some("fs_main"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            targets: &[Some(wgpu::ColorTargetState {
+                format,
+                blend: Some(wgpu::BlendState::REPLACE),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+        }),
+        primitive: wgpu::PrimitiveState::default(),
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview_mask: None,
+        cache: None,
+    })
+}
+
+#[cfg(target_arch = "wasm32")]
 fn create_glow_target(
     device: &wgpu::Device,
     format: wgpu::TextureFormat,
@@ -655,6 +702,207 @@ fn smoke_scene() -> Vec<VectorCommand> {
             intensity: 1.0,
         },
     })]
+}
+
+const BLASTERITES_IMPACT_MS: f32 = 3000.0;
+const BLASTERITES_CYCLE_MS: f32 = 5600.0;
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn blasterites_tester_scene(time_ms: f32) -> Vec<VectorCommand> {
+    let wrapped_time = time_ms.rem_euclid(BLASTERITES_CYCLE_MS);
+    let pulse = 0.85 + 0.15 * (wrapped_time * 0.006).sin();
+    let white = Color {
+        red: 0.92,
+        green: 0.96,
+        blue: 1.0,
+        alpha: 1.0,
+    };
+    let amber = Color {
+        red: 1.0,
+        green: 0.68,
+        blue: 0.18,
+        alpha: 1.0,
+    };
+    let blue = Color {
+        red: 0.55,
+        green: 0.8,
+        blue: 1.0,
+        alpha: 1.0,
+    };
+
+    let mut commands = Vec::new();
+
+    commands.push(VectorCommand::Polyline(Polyline {
+        points: blasterites_ship_outline(wrapped_time),
+        style: stroke(0.018, white, 1.0 + pulse * 0.25),
+    }));
+
+    if let Some(points) = blasterites_bullet_points(wrapped_time) {
+        commands.extend(points.into_iter().map(|(start, end)| {
+            VectorCommand::Line(Line {
+                start,
+                end,
+                style: stroke(0.012, blue, 1.35),
+            })
+        }));
+    }
+
+    if wrapped_time < BLASTERITES_IMPACT_MS {
+        commands.push(VectorCommand::Polyline(Polyline {
+            points: blasterites_asteroid_outline(wrapped_time),
+            style: stroke(0.014, white, 0.95 + pulse * 0.15),
+        }));
+    } else {
+        commands.extend(blasterites_spark_lines(wrapped_time).into_iter().map(
+            |(start, end, intensity)| {
+                VectorCommand::Line(Line {
+                    start,
+                    end,
+                    style: stroke(0.01, amber, intensity),
+                })
+            },
+        ));
+    }
+
+    commands
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn blasterites_ship_outline(time_ms: f32) -> Vec<Vec2> {
+    let base = [
+        Vec2 { x: 0.15, y: 0.0 },
+        Vec2 { x: -0.13, y: 0.1 },
+        Vec2 { x: -0.06, y: 0.0 },
+        Vec2 { x: -0.13, y: -0.1 },
+        Vec2 { x: 0.15, y: 0.0 },
+    ];
+    let angle = -0.2 + time_ms * 0.00125;
+    let wobble = 1.0 + 0.045 * (time_ms * 0.008).sin();
+    transform_points(&base, Vec2 { x: -0.45, y: -0.05 }, angle, wobble)
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn blasterites_bullet_points(time_ms: f32) -> Option<Vec<(Vec2, Vec2)>> {
+    let bullet_start_ms = 1150.0;
+    if !(bullet_start_ms..BLASTERITES_IMPACT_MS).contains(&time_ms) {
+        return None;
+    }
+
+    let progress =
+        ((time_ms - bullet_start_ms) / (BLASTERITES_IMPACT_MS - bullet_start_ms)).clamp(0.0, 1.0);
+    let start = Vec2 { x: -0.3, y: -0.03 };
+    let end = Vec2 { x: 0.23, y: 0.03 };
+    let center = lerp_vec2(start, end, progress);
+    let radius = 0.025 + 0.006 * (time_ms * 0.02).sin().abs();
+
+    Some(vec![
+        (
+            Vec2 {
+                x: center.x - radius,
+                y: center.y,
+            },
+            Vec2 {
+                x: center.x + radius,
+                y: center.y,
+            },
+        ),
+        (
+            Vec2 {
+                x: center.x,
+                y: center.y - radius,
+            },
+            Vec2 {
+                x: center.x,
+                y: center.y + radius,
+            },
+        ),
+    ])
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn blasterites_asteroid_outline(time_ms: f32) -> Vec<Vec2> {
+    let progress = (time_ms / BLASTERITES_IMPACT_MS).clamp(0.0, 1.0);
+    let center = lerp_vec2(
+        Vec2 { x: 0.82, y: 0.2 },
+        Vec2 { x: 0.23, y: 0.03 },
+        progress,
+    );
+    let angle = time_ms * -0.00055;
+    let wobble = 1.0 + 0.04 * (time_ms * 0.005).cos();
+    let base = [
+        Vec2 { x: 0.0, y: -0.18 },
+        Vec2 { x: 0.13, y: -0.12 },
+        Vec2 { x: 0.17, y: 0.02 },
+        Vec2 { x: 0.1, y: 0.16 },
+        Vec2 { x: -0.05, y: 0.18 },
+        Vec2 { x: -0.17, y: 0.08 },
+        Vec2 { x: -0.14, y: -0.08 },
+        Vec2 { x: 0.0, y: -0.18 },
+    ];
+    transform_points(&base, center, angle, wobble)
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn blasterites_spark_lines(time_ms: f32) -> Vec<(Vec2, Vec2, f32)> {
+    let elapsed = time_ms - BLASTERITES_IMPACT_MS;
+    let life = 1300.0;
+    if !(0.0..life).contains(&elapsed) {
+        return Vec::new();
+    }
+
+    let center = Vec2 { x: 0.23, y: 0.03 };
+    let fade = 1.0 - elapsed / life;
+    let speed = 0.00034 * elapsed;
+    (0..18)
+        .map(|index| {
+            let angle = index as f32 * 1.91986 + 0.35 * (elapsed * 0.006).sin();
+            let spread = speed * (0.7 + (index % 5) as f32 * 0.12);
+            let tail = 0.035 + 0.012 * (index % 3) as f32;
+            let direction = Vec2 {
+                x: angle.cos(),
+                y: angle.sin(),
+            };
+            let end = Vec2 {
+                x: center.x + direction.x * spread,
+                y: center.y + direction.y * spread,
+            };
+            let start = Vec2 {
+                x: end.x - direction.x * tail * fade,
+                y: end.y - direction.y * tail * fade,
+            };
+            (start, end, 0.4 + fade * 1.3)
+        })
+        .collect()
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn transform_points(points: &[Vec2], offset: Vec2, angle: f32, scale: f32) -> Vec<Vec2> {
+    let sin = angle.sin();
+    let cos = angle.cos();
+    points
+        .iter()
+        .map(|point| Vec2 {
+            x: offset.x + (point.x * cos - point.y * sin) * scale,
+            y: offset.y + (point.x * sin + point.y * cos) * scale,
+        })
+        .collect()
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn lerp_vec2(start: Vec2, end: Vec2, progress: f32) -> Vec2 {
+    Vec2 {
+        x: start.x + (end.x - start.x) * progress,
+        y: start.y + (end.y - start.y) * progress,
+    }
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn stroke(width: f32, color: Color, intensity: f32) -> StrokeStyle {
+    StrokeStyle {
+        width,
+        color,
+        intensity,
+    }
 }
 
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
@@ -835,5 +1083,53 @@ mod tests {
         assert_eq!(vertices[0].position, [-0.75, -0.12]);
         assert_eq!(vertices[2].position, [0.75, 0.12]);
         assert_eq!(vertices[0].color, [0.55, 0.55, 0.55, 1.0]);
+    }
+
+    #[test]
+    fn blasterites_tester_scene_is_nonempty_at_key_times() {
+        for time_ms in [0.0, 1500.0, 3200.0] {
+            let commands = blasterites_tester_scene(time_ms);
+            assert!(!commands.is_empty());
+            assert!(!tessellate_commands(&commands).is_empty());
+        }
+    }
+
+    #[test]
+    fn blasterites_ship_outline_is_closed() {
+        let points = blasterites_ship_outline(1400.0);
+
+        assert_eq!(points.first(), points.last());
+    }
+
+    #[test]
+    fn blasterites_bullet_exists_before_impact_and_sparks_after_impact() {
+        assert!(blasterites_bullet_points(1800.0).is_some());
+        assert!(blasterites_bullet_points(3400.0).is_none());
+        assert!(blasterites_spark_lines(1800.0).is_empty());
+        assert!(!blasterites_spark_lines(3400.0).is_empty());
+    }
+
+    #[test]
+    fn blasterites_scene_commands_avoid_zero_length_segments() {
+        for time_ms in [0.0, 1800.0, 3200.0, 4200.0] {
+            for command in blasterites_tester_scene(time_ms) {
+                match command {
+                    VectorCommand::Line(line) => {
+                        assert!(line_length(line.start, line.end) > f32::EPSILON);
+                    }
+                    VectorCommand::Polyline(polyline) => {
+                        for points in polyline.points.windows(2) {
+                            assert!(line_length(points[0], points[1]) > f32::EPSILON);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn line_length(start: Vec2, end: Vec2) -> f32 {
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        (dx * dx + dy * dy).sqrt()
     }
 }

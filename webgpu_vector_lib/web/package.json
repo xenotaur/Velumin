@@ -8,6 +8,7 @@
     "build": "vite build",
     "dev": "vite --host 127.0.0.1",
     "baseline": "npm run check:wasm && npm run build:wasm && npm run build",
+    "test:visual-smoke": "npm run build:wasm && npm run build",
     "test": "npm run baseline"
   },
   "keywords": [],
