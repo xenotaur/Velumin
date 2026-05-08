@@ -18,17 +18,57 @@
     height: 100vh;
     background-color: black;
   }
+
+  #status {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: white;
+    background: black;
+    font-family: system-ui, sans-serif;
+    text-align: center;
+  }
+
+  #status[data-visible="true"] {
+    display: flex;
+  }
 </style>
 </head>
 <body>
     <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="status" role="status" aria-live="polite"></div>
     <script type="module">
         import init, { WebGPU } from "@pkg/webgpu_vector_lib.js";
 
+        const status = document.getElementById("status");
+
+        function showUnsupported(message) {
+            status.textContent = message;
+            status.dataset.visible = "true";
+        }
+
+        function renderOrReport(gpu) {
+            try {
+                gpu.render();
+            } catch (error) {
+                console.error(error);
+                showUnsupported(error instanceof Error ? error.message : String(error));
+            }
+        }
+
         async function run() {
-            await init();
-            const gpu = await new WebGPU("canvas");
-            gpu.render();  // Calls Rust render function
+            try {
+                await init();
+                const gpu = await new WebGPU("canvas");
+                renderOrReport(gpu);
+                window.addEventListener("resize", () => renderOrReport(gpu));
+            } catch (error) {
+                console.error(error);
+                showUnsupported(error instanceof Error ? error.message : String(error));
+            }
         }
         
         console.log("Running WebGPU...");

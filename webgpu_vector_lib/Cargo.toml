@@ -7,6 +7,7 @@ rust-version = "1.87"
 [dependencies]
 bytemuck = { version = "1.13", features = ["derive"] }
 console_error_panic_hook = "0.1"  # Improves debugging of Rust WASM panics
+js-sys = "0.3"
 wasm-bindgen = "0.2"   # Allows Rust to communicate with JavaScript
 wasm-bindgen-futures = "0.4"
 wgpu = "29.0.3"

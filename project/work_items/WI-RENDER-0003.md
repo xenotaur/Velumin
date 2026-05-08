@@ -1,7 +1,7 @@
 ---
 id: WI-RENDER-0003
 title: Introduce Platform Boundary and Capability Handling
-status: planned
+status: done
 priority: high
 owner: project maintainers
 depends_on: WI-RENDER-0002
@@ -22,6 +22,7 @@ depends_on: WI-RENDER-0002
 - DP-0001: `project/design/proposals/DP-0001-modern-webgpu-rendering.md`
 - DP-0002: `project/design/proposals/DP-0002-cross-platform-renderer-architecture.md`
 - Current combined browser/renderer setup: `webgpu_vector_lib/src/lib.rs`
+- Boundary verification: `project/evidence/EV-0004.md`
 
 ## Acceptance Criteria
 - Browser setup responsibilities are separated from renderer resource ownership.
@@ -31,5 +32,4 @@ depends_on: WI-RENDER-0002
 - The browser smoke demo remains visible after the boundary split.
 
 ## Status
-- Planned after `WI-RENDER-0002`.
-
+- Done: browser setup is separated from renderer resource ownership, capability errors are reported to the page, resize reconfigures the surface explicitly, and the WASM/Vite baseline passes.
