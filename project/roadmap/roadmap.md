@@ -1,29 +1,39 @@
 ---
 id: ROADMAP-CORE
-title: Initial Roadmap
-status: draft
+title: Staged Rendering Modernization Roadmap
+status: active
 owner: project maintainers
 ---
 
 # Roadmap
 
 ## Status
-- Draft bootstrap roadmap. The repository does not yet include detailed product milestones, so this file records conservative directions rather than commitments.
+- LRH bootstrap is complete.
+- The active roadmap now follows DP-0001, with DP-0002 recorded as the next architectural horizon after the browser/WebGPU path is stable.
 
-## Near-Term Direction
-- Establish the LRH project control plane and keep it synchronized with observed repository state.
-- Stabilize the current Rust/WASM/WebGPU rendering path enough that contributors can repeatedly build and view output.
-- Expand from the current single-line rendering signal toward explicit vector primitive APIs only after validating the baseline path.
+## Active Direction: DP-0001 Modern WebGPU-First Rendering
+- Preserve the current browser white-line smoke demo as the baseline before making renderer changes.
+- Upgrade from the current `wgpu 0.16` + WebGL compatibility path to a modern WebGPU-first `wgpu` path.
+- Keep Chrome and Edge desktop as the first Tier 1 validation targets.
+- Defer WebGL2 fallback work unless maintainers later make it an explicit requirement.
+- Require visual validation so browser rendering regressions do not silently become black-canvas failures.
+- Introduce a platform boundary that keeps browser setup in the web adapter and shared GPU resource ownership in renderer state.
+- Move core vector rendering away from GPU line primitives by generating thick-line triangles.
 
-## Candidate Future Directions (Non-binding)
-- Add line, polyline, shape, and scene abstractions for retro vector game visuals.
-- Add examples that demonstrate Asteroids-like, Star Castle-like, or Space War-like rendering motifs without becoming full games by default.
-- Add validation routines for visual output, shader behavior, and browser integration.
-- Improve documentation for setup, build, and usage once commands are confirmed.
+## Next Horizon: DP-0002 Cross-Platform Renderer Architecture
+- After DP-0001 establishes a stable browser/WebGPU baseline, split Velumin toward a platform-neutral core, shared `wgpu` renderer, browser frontend, and later native desktop frontend.
+- Keep the same vector command and renderer model usable by browser and desktop targets where possible.
+- Treat native `winit` work as the next staged architecture milestone, not as a blocker for the DP-0001 browser modernization.
 
-## Unknowns / TODO
-- TODO: Confirm desired public API shape for vector primitives.
-- TODO: Confirm target browsers and WebGPU/WebGL fallback expectations.
-- TODO: Confirm preferred testing strategy for Rust, WASM, and browser rendering.
-- TODO: Confirm release/package strategy.
+## Later Directions
+- Mature glow and compositing after modern WebGPU rendering and triangle-based vector primitives are reliable.
+- Add a native `winit` shell that renders the same smoke scenes through the shared renderer.
+- Explore optional Bevy integration only after the core and renderer boundaries are stable.
+- Add richer examples that demonstrate Asteroids-like, Star Castle-like, or Space War-like visuals without turning Velumin into a full game project.
 
+## Settled Defaults
+- WebGPU-first is the default rendering strategy.
+- Chrome and Edge desktop are the first browser validation targets.
+- WebGL2 compatibility is optional and deferred.
+- Rendering work must include a visible smoke check or pixel/screenshot validation path.
+- DP-0002 is staged after DP-0001 rather than replacing the browser-first modernization focus.
