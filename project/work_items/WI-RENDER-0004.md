@@ -1,7 +1,7 @@
 ---
 id: WI-RENDER-0004
 title: Add Minimal Vector Primitive API and Thick-Line Tessellation
-status: planned
+status: done
 priority: high
 owner: project maintainers
 depends_on: WI-RENDER-0003
@@ -22,6 +22,7 @@ depends_on: WI-RENDER-0003
 - DP-0001: `project/design/proposals/DP-0001-modern-webgpu-rendering.md`
 - DP-0002: `project/design/proposals/DP-0002-cross-platform-renderer-architecture.md`
 - Current shader-generated smoke geometry: `webgpu_vector_lib/shaders/line.wgsl`
+- Primitive verification: `project/evidence/EV-0005.md`
 
 ## Acceptance Criteria
 - A minimal line/polyline command path exists for renderer input.
@@ -31,5 +32,4 @@ depends_on: WI-RENDER-0003
 - The browser demo can render the preserved smoke line through the primitive path.
 
 ## Status
-- Planned after `WI-RENDER-0003`.
-
+- Done: line/polyline commands exist, thick lines tessellate to triangles on the CPU, geometry is uploaded through a vertex buffer, and the browser smoke scene renders through the primitive path.

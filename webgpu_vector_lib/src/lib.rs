@@ -1,27 +1,98 @@
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
+#[repr(C)]
+#[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct Vertex {
+    position: [f32; 2],
+    color: [f32; 4],
+}
+
+impl Vertex {
+    #[cfg(target_arch = "wasm32")]
+    const ATTRIBUTES: [wgpu::VertexAttribute; 2] =
+        wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x4];
+
+    #[cfg(target_arch = "wasm32")]
+    fn layout() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &Self::ATTRIBUTES,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Vec2 {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Color {
+    pub red: f32,
+    pub green: f32,
+    pub blue: f32,
+    pub alpha: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct StrokeStyle {
+    pub width: f32,
+    pub color: Color,
+    pub intensity: f32,
+}
+
+#[derive(Clone, Debug)]
+pub struct Line {
+    pub start: Vec2,
+    pub end: Vec2,
+    pub style: StrokeStyle,
+}
+
+#[derive(Clone, Debug)]
+pub struct Polyline {
+    pub points: Vec<Vec2>,
+    pub style: StrokeStyle,
+}
+
+#[derive(Clone, Debug)]
+pub enum VectorCommand {
+    Line(Line),
+    Polyline(Polyline),
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 pub struct WebGPU {
     canvas: web_sys::HtmlCanvasElement,
     renderer: Renderer,
 }
 
+#[cfg(target_arch = "wasm32")]
 struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     render_pipeline: wgpu::RenderPipeline,
     surface: wgpu::Surface<'static>,
+    vertex_buffer: wgpu::Buffer,
+    vertex_capacity: usize,
+    vertex_count: u32,
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[cfg(target_arch = "wasm32")]
 impl WebGPU {
     #[wasm_bindgen(constructor)]
     pub async fn new(canvas_id: &str) -> Result<WebGPU, JsValue> {
@@ -85,10 +156,11 @@ impl WebGPU {
         let window = web_sys::window().ok_or("No window available")?;
         let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
         self.renderer.resize(width, height);
-        self.renderer.render()
+        self.renderer.render(&smoke_scene())
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 impl Renderer {
     async fn new(
         surface: wgpu::Surface<'static>,
@@ -169,7 +241,7 @@ impl Renderer {
                 module: &shader,
                 entry_point: Some("vs_main"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
-                buffers: &[],
+                buffers: &[Vertex::layout()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -201,12 +273,22 @@ impl Renderer {
         });
         log("Render pipeline created");
 
+        let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Vector Vertex Buffer"),
+            size: 1,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         Ok(Self {
             device,
             queue,
             config,
             render_pipeline,
             surface,
+            vertex_buffer,
+            vertex_capacity: 0,
+            vertex_count: 0,
         })
     }
 
@@ -221,8 +303,10 @@ impl Renderer {
         log(&format!("Surface reconfigured to {}x{}", width, height));
     }
 
-    fn render(&self) -> Result<(), JsValue> {
+    fn render(&mut self, commands: &[VectorCommand]) -> Result<(), JsValue> {
         log("Starting render call");
+        self.upload_vector_commands(commands);
+
         let frame = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(frame)
             | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
@@ -267,6 +351,7 @@ impl Renderer {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_viewport(
                 0.0,
                 0.0,
@@ -276,7 +361,7 @@ impl Renderer {
                 1.0,
             );
             render_pass.set_scissor_rect(0, 0, self.config.width, self.config.height);
-            render_pass.draw(0..6, 0..1);
+            render_pass.draw(0..self.vertex_count, 0..1);
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -284,12 +369,114 @@ impl Renderer {
         log("Frame submitted and presented");
         Ok(())
     }
+
+    fn upload_vector_commands(&mut self, commands: &[VectorCommand]) {
+        let vertices = tessellate_commands(commands);
+        self.vertex_count = vertices.len() as u32;
+
+        if vertices.is_empty() {
+            return;
+        }
+
+        let bytes = bytemuck::cast_slice(&vertices);
+        if vertices.len() > self.vertex_capacity {
+            self.vertex_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Vector Vertex Buffer"),
+                size: bytes.len() as wgpu::BufferAddress,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            self.vertex_capacity = vertices.len();
+        }
+
+        self.queue.write_buffer(&self.vertex_buffer, 0, bytes);
+        log(&format!("Uploaded {} vector vertices", vertices.len()));
+    }
 }
 
+#[cfg(target_arch = "wasm32")]
+fn smoke_scene() -> Vec<VectorCommand> {
+    vec![VectorCommand::Line(Line {
+        start: Vec2 { x: -0.75, y: 0.0 },
+        end: Vec2 { x: 0.75, y: 0.0 },
+        style: StrokeStyle {
+            width: 0.04,
+            color: Color {
+                red: 1.0,
+                green: 1.0,
+                blue: 1.0,
+                alpha: 1.0,
+            },
+            intensity: 1.0,
+        },
+    })]
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn tessellate_commands(commands: &[VectorCommand]) -> Vec<Vertex> {
+    let mut vertices = Vec::new();
+
+    for command in commands {
+        match command {
+            VectorCommand::Line(line) => {
+                push_line_vertices(&mut vertices, line.start, line.end, line.style);
+            }
+            VectorCommand::Polyline(polyline) => {
+                for points in polyline.points.windows(2) {
+                    push_line_vertices(&mut vertices, points[0], points[1], polyline.style);
+                }
+            }
+        }
+    }
+
+    vertices
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn push_line_vertices(vertices: &mut Vec<Vertex>, start: Vec2, end: Vec2, style: StrokeStyle) {
+    let dx = end.x - start.x;
+    let dy = end.y - start.y;
+    let length = (dx * dx + dy * dy).sqrt();
+    if length <= f32::EPSILON || style.width <= 0.0 {
+        return;
+    }
+
+    let half_width = style.width * 0.5;
+    let normal_x = -dy / length * half_width;
+    let normal_y = dx / length * half_width;
+    let color = [
+        style.color.red * style.intensity,
+        style.color.green * style.intensity,
+        style.color.blue * style.intensity,
+        style.color.alpha,
+    ];
+
+    let a = Vertex {
+        position: [start.x - normal_x, start.y - normal_y],
+        color,
+    };
+    let b = Vertex {
+        position: [end.x - normal_x, end.y - normal_y],
+        color,
+    };
+    let c = Vertex {
+        position: [end.x + normal_x, end.y + normal_y],
+        color,
+    };
+    let d = Vertex {
+        position: [start.x + normal_x, start.y + normal_y],
+        color,
+    };
+
+    vertices.extend_from_slice(&[a, b, c, a, c, d]);
+}
+
+#[cfg(target_arch = "wasm32")]
 fn browser_has_webgpu(window: &web_sys::Window) -> bool {
     js_sys::Reflect::has(window.navigator().as_ref(), &JsValue::from_str("gpu")).unwrap_or(false)
 }
 
+#[cfg(target_arch = "wasm32")]
 fn resize_canvas_to_display_size(
     window: &web_sys::Window,
     canvas: &web_sys::HtmlCanvasElement,
@@ -302,4 +489,61 @@ fn resize_canvas_to_display_size(
     canvas.set_height(height);
 
     Ok((width, height))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn white_style(width: f32) -> StrokeStyle {
+        StrokeStyle {
+            width,
+            color: Color {
+                red: 1.0,
+                green: 1.0,
+                blue: 1.0,
+                alpha: 1.0,
+            },
+            intensity: 1.0,
+        }
+    }
+
+    #[test]
+    fn line_tessellates_to_two_triangles() {
+        let vertices = tessellate_commands(&[VectorCommand::Line(Line {
+            start: Vec2 { x: -0.75, y: 0.0 },
+            end: Vec2 { x: 0.75, y: 0.0 },
+            style: white_style(0.04),
+        })]);
+
+        assert_eq!(vertices.len(), 6);
+        assert_eq!(vertices[0].position, [-0.75, -0.02]);
+        assert_eq!(vertices[2].position, [0.75, 0.02]);
+        assert_eq!(vertices[5].position, [-0.75, 0.02]);
+    }
+
+    #[test]
+    fn polyline_tessellates_each_segment() {
+        let vertices = tessellate_commands(&[VectorCommand::Polyline(Polyline {
+            points: vec![
+                Vec2 { x: -0.5, y: 0.0 },
+                Vec2 { x: 0.0, y: 0.0 },
+                Vec2 { x: 0.5, y: 0.0 },
+            ],
+            style: white_style(0.04),
+        })]);
+
+        assert_eq!(vertices.len(), 12);
+    }
+
+    #[test]
+    fn zero_length_lines_are_skipped() {
+        let vertices = tessellate_commands(&[VectorCommand::Line(Line {
+            start: Vec2 { x: 0.0, y: 0.0 },
+            end: Vec2 { x: 0.0, y: 0.0 },
+            style: white_style(0.04),
+        })]);
+
+        assert!(vertices.is_empty());
+    }
 }
