@@ -41,7 +41,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(-texel.x, texel.y)).rgb * 0.05;
 
     let scanline = 0.72 + 0.28 * step(0.5, fract(input.position.y * 0.5));
-    let vignette = smoothstep(0.92, 0.25, distance(input.uv, vec2<f32>(0.5, 0.5)));
+    let vignette = 1.0 - smoothstep(0.25, 0.92, distance(input.uv, vec2<f32>(0.5, 0.5)));
     let color = glow * 2.0 * scanline * (0.72 + 0.28 * vignette);
 
     return vec4<f32>(color, 1.0);

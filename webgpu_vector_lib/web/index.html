@@ -59,11 +59,9 @@
                 } else {
                     gpu.render();
                 }
-                return true;
             } catch (error) {
                 console.error(error);
                 showUnsupported(error instanceof Error ? error.message : String(error));
-                return false;
             }
         }
 
@@ -73,9 +71,8 @@
                 const gpu = await WebGPU.create("canvas");
                 if (demo === "blasterites") {
                     const animate = (time) => {
-                        if (renderOrReport(gpu, time)) {
-                            requestAnimationFrame(animate);
-                        }
+                        renderOrReport(gpu, time);
+                        requestAnimationFrame(animate);
                     };
                     requestAnimationFrame(animate);
                     window.addEventListener("resize", () => renderOrReport(gpu));

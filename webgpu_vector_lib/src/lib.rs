@@ -177,8 +177,9 @@ impl WebGPU {
         let window = web_sys::window().ok_or("No window available")?;
         let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
         self.renderer.resize(width, height);
+        let wrapped_time_ms = time_ms.rem_euclid(BLASTERITES_CYCLE_MS as f64) as f32;
         self.renderer
-            .render(&blasterites_tester_scene(time_ms as f32), true)
+            .render(&blasterites_tester_scene(wrapped_time_ms), true)
     }
 }
 
