@@ -1,7 +1,7 @@
 ---
 id: WI-RENDER-0005
 title: Spike Glow Pipeline After Modern Baseline
-status: planned
+status: done
 priority: medium
 owner: project maintainers
 depends_on: WI-RENDER-0004
@@ -23,6 +23,7 @@ depends_on: WI-RENDER-0004
 - DP-0001: `project/design/proposals/DP-0001-modern-webgpu-rendering.md`
 - DP-0002: `project/design/proposals/DP-0002-cross-platform-renderer-architecture.md`
 - Primitive work item: `project/work_items/WI-RENDER-0004.md`
+- Glow spike verification: `project/evidence/EV-0006.md`
 
 ## Acceptance Criteria
 - A prototype offscreen bright-pass path is demonstrated or clearly documented.
@@ -32,5 +33,4 @@ depends_on: WI-RENDER-0004
 - Follow-up production work is identified separately instead of expanding this spike without review.
 
 ## Status
-- Planned after `WI-RENDER-0004`.
-
+- Done as a spike: a low-resolution bright pass, blur-like composite pass, and crisp-line overlay are implemented and verified; production glow tuning remains follow-up work.

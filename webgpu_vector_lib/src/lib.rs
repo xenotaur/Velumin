@@ -84,11 +84,23 @@ struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
-    render_pipeline: wgpu::RenderPipeline,
+    crisp_pipeline: wgpu::RenderPipeline,
+    glow_pipeline: wgpu::RenderPipeline,
+    composite_pipeline: wgpu::RenderPipeline,
+    composite_bind_group_layout: wgpu::BindGroupLayout,
+    composite_bind_group: wgpu::BindGroup,
     surface: wgpu::Surface<'static>,
+    glow_texture: wgpu::Texture,
+    glow_view: wgpu::TextureView,
+    glow_sampler: wgpu::Sampler,
+    glow_width: u32,
+    glow_height: u32,
     vertex_buffer: wgpu::Buffer,
     vertex_capacity: usize,
     vertex_count: u32,
+    glow_vertex_buffer: wgpu::Buffer,
+    glow_vertex_capacity: usize,
+    glow_vertex_count: u32,
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -228,23 +240,58 @@ impl Renderer {
         });
         log("Shader module created");
 
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Pipeline Layout"),
-            bind_group_layouts: &[],
-            immediate_size: 0,
+        let crisp_pipeline =
+            create_vector_pipeline(&device, &shader, config.format, "Crisp Vector Pipeline");
+        let glow_pipeline =
+            create_vector_pipeline(&device, &shader, config.format, "Glow Bright-Pass Pipeline");
+        log("Vector render pipelines created");
+
+        let composite_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Glow Composite Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/composite.wgsl").into()),
         });
 
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Line Render Pipeline"),
-            layout: Some(&pipeline_layout),
+        let composite_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Glow Composite Bind Group Layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            });
+
+        let composite_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Glow Composite Pipeline Layout"),
+                bind_group_layouts: &[Some(&composite_bind_group_layout)],
+                immediate_size: 0,
+            });
+
+        let composite_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Glow Composite Pipeline"),
+            layout: Some(&composite_pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &shader,
+                module: &composite_shader,
                 entry_point: Some("vs_main"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
-                buffers: &[Vertex::layout()],
+                buffers: &[],
             },
             fragment: Some(wgpu::FragmentState {
-                module: &shader,
+                module: &composite_shader,
                 entry_point: Some("fs_main"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
@@ -253,25 +300,13 @@ impl Renderer {
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: None,
-                unclipped_depth: false,
-                polygon_mode: wgpu::PolygonMode::Fill,
-                conservative: false,
-            },
+            primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
+            multisample: wgpu::MultisampleState::default(),
             multiview_mask: None,
             cache: None,
         });
-        log("Render pipeline created");
+        log("Glow composite pipeline created");
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vector Vertex Buffer"),
@@ -279,16 +314,56 @@ impl Renderer {
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
+        let glow_vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glow Vector Vertex Buffer"),
+            size: 1,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let glow_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Glow Sampler"),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+        let (glow_texture, glow_view, composite_bind_group, glow_width, glow_height) =
+            create_glow_target(
+                &device,
+                config.format,
+                config.width,
+                config.height,
+                &composite_bind_group_layout,
+                &glow_sampler,
+            );
+        log(&format!(
+            "Glow target configured at {}x{}",
+            glow_width, glow_height
+        ));
 
         Ok(Self {
             device,
             queue,
             config,
-            render_pipeline,
+            crisp_pipeline,
+            glow_pipeline,
+            composite_pipeline,
+            composite_bind_group_layout,
+            composite_bind_group,
             surface,
+            glow_texture,
+            glow_view,
+            glow_sampler,
+            glow_width,
+            glow_height,
             vertex_buffer,
             vertex_capacity: 0,
             vertex_count: 0,
+            glow_vertex_buffer,
+            glow_vertex_capacity: 0,
+            glow_vertex_count: 0,
         })
     }
 
@@ -300,6 +375,20 @@ impl Renderer {
         self.config.width = width;
         self.config.height = height;
         self.surface.configure(&self.device, &self.config);
+        let (glow_texture, glow_view, composite_bind_group, glow_width, glow_height) =
+            create_glow_target(
+                &self.device,
+                self.config.format,
+                width,
+                height,
+                &self.composite_bind_group_layout,
+                &self.glow_sampler,
+            );
+        self.glow_texture = glow_texture;
+        self.glow_view = glow_view;
+        self.composite_bind_group = composite_bind_group;
+        self.glow_width = glow_width;
+        self.glow_height = glow_height;
         log(&format!("Surface reconfigured to {}x{}", width, height));
     }
 
@@ -333,8 +422,40 @@ impl Renderer {
             });
 
         {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
+            let mut glow_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Glow Bright Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &self.glow_view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+
+            glow_pass.set_pipeline(&self.glow_pipeline);
+            glow_pass.set_vertex_buffer(0, self.glow_vertex_buffer.slice(..));
+            glow_pass.set_viewport(
+                0.0,
+                0.0,
+                self.glow_width as f32,
+                self.glow_height as f32,
+                0.0,
+                1.0,
+            );
+            glow_pass.set_scissor_rect(0, 0, self.glow_width, self.glow_height);
+            glow_pass.draw(0..self.glow_vertex_count, 0..1);
+        }
+
+        {
+            let mut surface_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Composite and Crisp Vector Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     depth_slice: None,
@@ -350,9 +471,13 @@ impl Renderer {
                 multiview_mask: None,
             });
 
-            render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.set_viewport(
+            surface_pass.set_pipeline(&self.composite_pipeline);
+            surface_pass.set_bind_group(0, &self.composite_bind_group, &[]);
+            surface_pass.draw(0..3, 0..1);
+
+            surface_pass.set_pipeline(&self.crisp_pipeline);
+            surface_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            surface_pass.set_viewport(
                 0.0,
                 0.0,
                 self.config.width as f32,
@@ -360,8 +485,8 @@ impl Renderer {
                 0.0,
                 1.0,
             );
-            render_pass.set_scissor_rect(0, 0, self.config.width, self.config.height);
-            render_pass.draw(0..self.vertex_count, 0..1);
+            surface_pass.set_scissor_rect(0, 0, self.config.width, self.config.height);
+            surface_pass.draw(0..self.vertex_count, 0..1);
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -372,26 +497,146 @@ impl Renderer {
 
     fn upload_vector_commands(&mut self, commands: &[VectorCommand]) {
         let vertices = tessellate_commands(commands);
-        self.vertex_count = vertices.len() as u32;
+        self.vertex_count = upload_vertices(
+            &self.device,
+            &self.queue,
+            "Vector Vertex Buffer",
+            &vertices,
+            &mut self.vertex_buffer,
+            &mut self.vertex_capacity,
+        );
 
-        if vertices.is_empty() {
-            return;
-        }
-
-        let bytes = bytemuck::cast_slice(&vertices);
-        if vertices.len() > self.vertex_capacity {
-            self.vertex_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("Vector Vertex Buffer"),
-                size: bytes.len() as wgpu::BufferAddress,
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            });
-            self.vertex_capacity = vertices.len();
-        }
-
-        self.queue.write_buffer(&self.vertex_buffer, 0, bytes);
+        let glow_vertices = tessellate_commands_with_style_scale(commands, 6.0, 0.55);
+        self.glow_vertex_count = upload_vertices(
+            &self.device,
+            &self.queue,
+            "Glow Vector Vertex Buffer",
+            &glow_vertices,
+            &mut self.glow_vertex_buffer,
+            &mut self.glow_vertex_capacity,
+        );
         log(&format!("Uploaded {} vector vertices", vertices.len()));
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn create_vector_pipeline(
+    device: &wgpu::Device,
+    shader: &wgpu::ShaderModule,
+    format: wgpu::TextureFormat,
+    label: &str,
+) -> wgpu::RenderPipeline {
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("Vector Pipeline Layout"),
+        bind_group_layouts: &[],
+        immediate_size: 0,
+    });
+
+    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some(label),
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: shader,
+            entry_point: Some("vs_main"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            buffers: &[Vertex::layout()],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: shader,
+            entry_point: Some("fs_main"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            targets: &[Some(wgpu::ColorTargetState {
+                format,
+                blend: Some(wgpu::BlendState::REPLACE),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            strip_index_format: None,
+            front_face: wgpu::FrontFace::Ccw,
+            cull_mode: None,
+            unclipped_depth: false,
+            polygon_mode: wgpu::PolygonMode::Fill,
+            conservative: false,
+        },
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview_mask: None,
+        cache: None,
+    })
+}
+
+#[cfg(target_arch = "wasm32")]
+fn create_glow_target(
+    device: &wgpu::Device,
+    format: wgpu::TextureFormat,
+    surface_width: u32,
+    surface_height: u32,
+    layout: &wgpu::BindGroupLayout,
+    sampler: &wgpu::Sampler,
+) -> (wgpu::Texture, wgpu::TextureView, wgpu::BindGroup, u32, u32) {
+    let glow_width = (surface_width / 2).max(1);
+    let glow_height = (surface_height / 2).max(1);
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Glow Bright-Pass Texture"),
+        size: wgpu::Extent3d {
+            width: glow_width,
+            height: glow_height,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+    let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("Glow Composite Bind Group"),
+        layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(sampler),
+            },
+        ],
+    });
+
+    (texture, view, bind_group, glow_width, glow_height)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn upload_vertices(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    label: &str,
+    vertices: &[Vertex],
+    buffer: &mut wgpu::Buffer,
+    capacity: &mut usize,
+) -> u32 {
+    if vertices.is_empty() {
+        return 0;
+    }
+
+    let bytes = bytemuck::cast_slice(vertices);
+    if vertices.len() > *capacity {
+        *buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some(label),
+            size: bytes.len() as wgpu::BufferAddress,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        *capacity = vertices.len();
+    }
+
+    queue.write_buffer(buffer, 0, bytes);
+    vertices.len() as u32
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -414,22 +659,49 @@ fn smoke_scene() -> Vec<VectorCommand> {
 
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 fn tessellate_commands(commands: &[VectorCommand]) -> Vec<Vertex> {
+    tessellate_commands_with_style_scale(commands, 1.0, 1.0)
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn tessellate_commands_with_style_scale(
+    commands: &[VectorCommand],
+    width_scale: f32,
+    intensity_scale: f32,
+) -> Vec<Vertex> {
     let mut vertices = Vec::new();
 
     for command in commands {
         match command {
             VectorCommand::Line(line) => {
-                push_line_vertices(&mut vertices, line.start, line.end, line.style);
+                push_line_vertices(
+                    &mut vertices,
+                    line.start,
+                    line.end,
+                    scaled_style(line.style, width_scale, intensity_scale),
+                );
             }
             VectorCommand::Polyline(polyline) => {
                 for points in polyline.points.windows(2) {
-                    push_line_vertices(&mut vertices, points[0], points[1], polyline.style);
+                    push_line_vertices(
+                        &mut vertices,
+                        points[0],
+                        points[1],
+                        scaled_style(polyline.style, width_scale, intensity_scale),
+                    );
                 }
             }
         }
     }
 
     vertices
+}
+
+fn scaled_style(style: StrokeStyle, width_scale: f32, intensity_scale: f32) -> StrokeStyle {
+    StrokeStyle {
+        width: style.width * width_scale,
+        intensity: style.intensity * intensity_scale,
+        ..style
+    }
 }
 
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
@@ -545,5 +817,23 @@ mod tests {
         })]);
 
         assert!(vertices.is_empty());
+    }
+
+    #[test]
+    fn glow_style_scale_widens_tessellated_line() {
+        let vertices = tessellate_commands_with_style_scale(
+            &[VectorCommand::Line(Line {
+                start: Vec2 { x: -0.75, y: 0.0 },
+                end: Vec2 { x: 0.75, y: 0.0 },
+                style: white_style(0.04),
+            })],
+            6.0,
+            0.55,
+        );
+
+        assert_eq!(vertices.len(), 6);
+        assert_eq!(vertices[0].position, [-0.75, -0.12]);
+        assert_eq!(vertices[2].position, [0.75, 0.12]);
+        assert_eq!(vertices[0].color, [0.55, 0.55, 0.55, 1.0]);
     }
 }
