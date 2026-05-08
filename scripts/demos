@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WEB_DIR="$ROOT/webgpu_vector_lib/web"
+HOST="${HOST:-127.0.0.1}"
+PORT="${PORT:-5173}"
+BASE_URL="http://$HOST:$PORT"
+
+cat <<EOF
+==> Building Velumin browser demos
+
+Available routes once Vite is running:
+  baseline:   $BASE_URL/
+  blasterites: $BASE_URL/?demo=blasterites
+
+EOF
+
+npm run build:wasm --prefix "$WEB_DIR"
+npm run dev --prefix "$WEB_DIR" -- --host "$HOST" --port "$PORT"

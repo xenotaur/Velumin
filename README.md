@@ -26,12 +26,10 @@ The crate currently requires Rust 1.87 or newer. The repository pins the local t
 Build the WASM package and start the local Vite server:
 
 ```sh
-cd webgpu_vector_lib/web
-npm run build:wasm
-npm run dev
+scripts/demos
 ```
 
-Open the Vite localhost URL shown by the server.
+The script prints the available demo routes, then starts Vite. Open the localhost URL shown by the server.
 
 Available demo routes:
 
