@@ -1,11 +1,10 @@
 ---
 id: WI-RENDER-0002
 title: Upgrade to Modern WebGPU-First wgpu
-status: done
+status: resolved
 priority: high
 owner: project maintainers
-depends_on: WI-RENDER-0001
----
+depends_on: WI-RENDER-0001---
 
 # WI-RENDER-0002: Upgrade to Modern WebGPU-First `wgpu`
 

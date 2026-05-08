@@ -1,11 +1,10 @@
 ---
 id: WI-RENDER-0004
 title: Add Minimal Vector Primitive API and Thick-Line Tessellation
-status: done
+status: resolved
 priority: high
 owner: project maintainers
-depends_on: WI-RENDER-0003
----
+depends_on: WI-RENDER-0003---
 
 # WI-RENDER-0004: Add Minimal Vector Primitive API and Thick-Line Tessellation
 

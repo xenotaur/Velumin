@@ -1,11 +1,10 @@
 ---
 id: WI-RENDER-0003
 title: Introduce Platform Boundary and Capability Handling
-status: done
+status: resolved
 priority: high
 owner: project maintainers
-depends_on: WI-RENDER-0002
----
+depends_on: WI-RENDER-0002---
 
 # WI-RENDER-0003: Introduce Platform Boundary and Capability Handling
 

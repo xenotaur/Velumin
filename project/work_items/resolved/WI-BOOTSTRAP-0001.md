@@ -1,10 +1,9 @@
 ---
 id: WI-BOOTSTRAP-0001
 title: Bootstrap LRH project control plane
-status: done
+status: resolved
 priority: high
-owner: project maintainers
----
+owner: project maintainers---
 
 # WI-BOOTSTRAP-0001: Bootstrap LRH Project Control Plane
 

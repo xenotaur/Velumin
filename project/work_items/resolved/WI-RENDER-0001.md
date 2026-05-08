@@ -1,11 +1,10 @@
 ---
 id: WI-RENDER-0001
 title: Preserve Browser Rendering Baseline
-status: done
+status: resolved
 priority: high
 owner: project maintainers
-depends_on: WI-BOOTSTRAP-0001
----
+depends_on: WI-BOOTSTRAP-0001---
 
 # WI-RENDER-0001: Preserve Browser Rendering Baseline
 

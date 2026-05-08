@@ -1,11 +1,10 @@
 ---
 id: WI-RENDER-0005
 title: Spike Glow Pipeline After Modern Baseline
-status: done
+status: resolved
 priority: medium
 owner: project maintainers
-depends_on: WI-RENDER-0004
----
+depends_on: WI-RENDER-0004---
 
 # WI-RENDER-0005: Spike Glow Pipeline After Modern Baseline
 
