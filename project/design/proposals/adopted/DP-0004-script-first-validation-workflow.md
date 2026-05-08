@@ -105,11 +105,11 @@ scripts/baseline
 ## Suggested Command Mapping
 
 ### Rust Toolchain
-Use a checked-in `rust-toolchain.toml` so Rust version, components, and targets are visible in the repository:
+Use a checked-in `rust-toolchain.toml` so Rust version, components, and targets are visible in the repository. Pin the channel to an exact patch release so cached CI toolchains can be reused without a channel metadata sync.
 
 ```toml
 [toolchain]
-channel = "1.87"
+channel = "1.87.0"
 components = ["rustfmt", "clippy"]
 targets = ["wasm32-unknown-unknown"]
 ```
@@ -363,6 +363,7 @@ This option is rejected for Velumin because it fails the core reproducibility go
 ## Risks
 - Shell scripts may accumulate too much logic if not kept thin.
 - `wasm-pack` installation may vary across developer machines and CI images.
+- Unpinned validation tools may break CI when new tool releases raise their own MSRV.
 - Headless browser WebGPU support may be inconsistent, making early visual CI checks flaky.
 - Clippy warnings can change as the Rust toolchain changes, especially if the toolchain is not pinned.
 - Security tooling can create noisy failures before the project defines policy.
