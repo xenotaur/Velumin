@@ -6,7 +6,7 @@
     "check:wasm": "cargo check --manifest-path ../Cargo.toml --target wasm32-unknown-unknown",
     "build:wasm": "wasm-pack build .. --target web",
     "build": "vite build",
-    "dev": "vite --host 127.0.0.1",
+    "dev": "vite",
     "baseline": "npm run check:wasm && npm run build:wasm && npm run build",
     "test:visual-smoke": "npm run build:wasm && npm run build",
     "test": "npm run baseline"
