@@ -25,6 +25,167 @@ impl Vertex {
     }
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct GlowVertex {
+    position: [f32; 2],
+    color: [f32; 4],
+    segment_start: [f32; 2],
+    segment_end: [f32; 2],
+    radius: f32,
+    core_width: f32,
+}
+
+impl GlowVertex {
+    #[cfg(target_arch = "wasm32")]
+    const ATTRIBUTES: [wgpu::VertexAttribute; 6] = wgpu::vertex_attr_array![
+        0 => Float32x2,
+        1 => Float32x4,
+        2 => Float32x2,
+        3 => Float32x2,
+        4 => Float32,
+        5 => Float32
+    ];
+
+    #[cfg(target_arch = "wasm32")]
+    fn layout() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &Self::ATTRIBUTES,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+struct VectorDisplaySettings {
+    glow_layers: &'static [GlowLayer],
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+impl VectorDisplaySettings {
+    const ARCADE_BALANCED_GLOW: [GlowLayer; 3] = [
+        GlowLayer {
+            width_scale: 2.2,
+            intensity_scale: 0.28,
+        },
+        GlowLayer {
+            width_scale: 5.0,
+            intensity_scale: 0.11,
+        },
+        GlowLayer {
+            width_scale: 9.0,
+            intensity_scale: 0.045,
+        },
+    ];
+    const MONOCHROME_BEAM_GLOW: [GlowLayer; 2] = [
+        GlowLayer {
+            width_scale: 2.0,
+            intensity_scale: 0.22,
+        },
+        GlowLayer {
+            width_scale: 4.5,
+            intensity_scale: 0.08,
+        },
+    ];
+    const COLOR_QUADRA_SCAN_GLOW: [GlowLayer; 3] = [
+        GlowLayer {
+            width_scale: 2.6,
+            intensity_scale: 0.35,
+        },
+        GlowLayer {
+            width_scale: 6.5,
+            intensity_scale: 0.16,
+        },
+        GlowLayer {
+            width_scale: 11.0,
+            intensity_scale: 0.06,
+        },
+    ];
+    const CLEAN_NEON_GLOW: [GlowLayer; 2] = [
+        GlowLayer {
+            width_scale: 3.0,
+            intensity_scale: 0.18,
+        },
+        GlowLayer {
+            width_scale: 7.0,
+            intensity_scale: 0.07,
+        },
+    ];
+
+    fn from_preset(preset: VectorDisplayPreset) -> Self {
+        match preset {
+            VectorDisplayPreset::ArcadeBalanced => Self {
+                glow_layers: &Self::ARCADE_BALANCED_GLOW,
+            },
+            VectorDisplayPreset::MonochromeBeam => Self {
+                glow_layers: &Self::MONOCHROME_BEAM_GLOW,
+            },
+            VectorDisplayPreset::ColorQuadraScan => Self {
+                glow_layers: &Self::COLOR_QUADRA_SCAN_GLOW,
+            },
+            VectorDisplayPreset::CleanNeon => Self {
+                glow_layers: &Self::CLEAN_NEON_GLOW,
+            },
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
+enum VectorDisplayPreset {
+    ArcadeBalanced,
+    MonochromeBeam,
+    ColorQuadraScan,
+    CleanNeon,
+}
+
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+struct GlowLayer {
+    width_scale: f32,
+    intensity_scale: f32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+struct RenderViewport {
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+impl RenderViewport {
+    const TARGET_ASPECT: f32 = 4.0 / 3.0;
+
+    fn centered_4_3(surface_width: u32, surface_height: u32) -> Self {
+        let surface_width = surface_width.max(1);
+        let surface_height = surface_height.max(1);
+        let surface_aspect = surface_width as f32 / surface_height as f32;
+
+        if surface_aspect > Self::TARGET_ASPECT {
+            let width = ((surface_height as f32 * Self::TARGET_ASPECT).round() as u32).max(1);
+            Self {
+                x: (surface_width - width) / 2,
+                y: 0,
+                width,
+                height: surface_height,
+            }
+        } else {
+            let height = ((surface_width as f32 / Self::TARGET_ASPECT).round() as u32).max(1);
+            Self {
+                x: 0,
+                y: (surface_height - height) / 2,
+                width: surface_width,
+                height,
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vec2 {
     pub x: f32,
@@ -102,6 +263,7 @@ struct Renderer {
     glow_vertex_buffer: wgpu::Buffer,
     glow_vertex_capacity: usize,
     glow_vertex_count: u32,
+    display_settings: VectorDisplaySettings,
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -249,12 +411,26 @@ impl Renderer {
             label: Some("Line Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/line.wgsl").into()),
         });
-        log("Shader module created");
+        let glow_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Glow Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/glow.wgsl").into()),
+        });
+        log("Shader modules created");
 
-        let crisp_pipeline =
-            create_vector_pipeline(&device, &shader, config.format, "Crisp Vector Pipeline");
-        let glow_pipeline =
-            create_vector_pipeline(&device, &shader, config.format, "Glow Bright-Pass Pipeline");
+        let crisp_pipeline = create_vector_pipeline(
+            &device,
+            &shader,
+            config.format,
+            wgpu::BlendState::REPLACE,
+            "Crisp Vector Pipeline",
+        );
+        let glow_pipeline = create_glow_pipeline(
+            &device,
+            &glow_shader,
+            config.format,
+            additive_blend_state(),
+            "Glow Bright-Pass Pipeline",
+        );
         log("Vector render pipelines created");
 
         let composite_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -371,6 +547,9 @@ impl Renderer {
             glow_vertex_buffer,
             glow_vertex_capacity: 0,
             glow_vertex_count: 0,
+            display_settings: VectorDisplaySettings::from_preset(
+                VectorDisplayPreset::ArcadeBalanced,
+            ),
         })
     }
 
@@ -428,6 +607,9 @@ impl Renderer {
                 label: Some("Render Encoder"),
             });
 
+        let surface_viewport = RenderViewport::centered_4_3(self.config.width, self.config.height);
+        let glow_viewport = RenderViewport::centered_4_3(self.glow_width, self.glow_height);
+
         {
             let mut glow_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Glow Bright Pass"),
@@ -449,14 +631,19 @@ impl Renderer {
             glow_pass.set_pipeline(&self.glow_pipeline);
             glow_pass.set_vertex_buffer(0, self.glow_vertex_buffer.slice(..));
             glow_pass.set_viewport(
-                0.0,
-                0.0,
-                self.glow_width as f32,
-                self.glow_height as f32,
+                glow_viewport.x as f32,
+                glow_viewport.y as f32,
+                glow_viewport.width as f32,
+                glow_viewport.height as f32,
                 0.0,
                 1.0,
             );
-            glow_pass.set_scissor_rect(0, 0, self.glow_width, self.glow_height);
+            glow_pass.set_scissor_rect(
+                glow_viewport.x,
+                glow_viewport.y,
+                glow_viewport.width,
+                glow_viewport.height,
+            );
             glow_pass.draw(0..self.glow_vertex_count, 0..1);
         }
 
@@ -490,14 +677,19 @@ impl Renderer {
             surface_pass.set_pipeline(&self.crisp_pipeline);
             surface_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             surface_pass.set_viewport(
-                0.0,
-                0.0,
-                self.config.width as f32,
-                self.config.height as f32,
+                surface_viewport.x as f32,
+                surface_viewport.y as f32,
+                surface_viewport.width as f32,
+                surface_viewport.height as f32,
                 0.0,
                 1.0,
             );
-            surface_pass.set_scissor_rect(0, 0, self.config.width, self.config.height);
+            surface_pass.set_scissor_rect(
+                surface_viewport.x,
+                surface_viewport.y,
+                surface_viewport.width,
+                surface_viewport.height,
+            );
             surface_pass.draw(0..self.vertex_count, 0..1);
         }
 
@@ -518,8 +710,8 @@ impl Renderer {
             &mut self.vertex_capacity,
         );
 
-        let glow_vertices = tessellate_commands_with_style_scale(commands, 6.0, 0.55);
-        self.glow_vertex_count = upload_vertices(
+        let glow_vertices = tessellate_glow_commands(commands, self.display_settings);
+        self.glow_vertex_count = upload_glow_vertices(
             &self.device,
             &self.queue,
             "Glow Vector Vertex Buffer",
@@ -532,10 +724,60 @@ impl Renderer {
 }
 
 #[cfg(target_arch = "wasm32")]
+fn create_glow_pipeline(
+    device: &wgpu::Device,
+    shader: &wgpu::ShaderModule,
+    format: wgpu::TextureFormat,
+    blend: wgpu::BlendState,
+    label: &str,
+) -> wgpu::RenderPipeline {
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("Glow Pipeline Layout"),
+        bind_group_layouts: &[],
+        immediate_size: 0,
+    });
+
+    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some(label),
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: shader,
+            entry_point: Some("vs_main"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            buffers: &[GlowVertex::layout()],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: shader,
+            entry_point: Some("fs_main"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            targets: &[Some(wgpu::ColorTargetState {
+                format,
+                blend: Some(blend),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            strip_index_format: None,
+            front_face: wgpu::FrontFace::Ccw,
+            cull_mode: None,
+            unclipped_depth: false,
+            polygon_mode: wgpu::PolygonMode::Fill,
+            conservative: false,
+        },
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview_mask: None,
+        cache: None,
+    })
+}
+
+#[cfg(target_arch = "wasm32")]
 fn create_vector_pipeline(
     device: &wgpu::Device,
     shader: &wgpu::ShaderModule,
     format: wgpu::TextureFormat,
+    blend: wgpu::BlendState,
     label: &str,
 ) -> wgpu::RenderPipeline {
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -559,7 +801,7 @@ fn create_vector_pipeline(
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             targets: &[Some(wgpu::ColorTargetState {
                 format,
-                blend: Some(wgpu::BlendState::REPLACE),
+                blend: Some(blend),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
         }),
@@ -577,6 +819,22 @@ fn create_vector_pipeline(
         multiview_mask: None,
         cache: None,
     })
+}
+
+#[cfg(target_arch = "wasm32")]
+fn additive_blend_state() -> wgpu::BlendState {
+    wgpu::BlendState {
+        color: wgpu::BlendComponent {
+            src_factor: wgpu::BlendFactor::One,
+            dst_factor: wgpu::BlendFactor::One,
+            operation: wgpu::BlendOperation::Add,
+        },
+        alpha: wgpu::BlendComponent {
+            src_factor: wgpu::BlendFactor::One,
+            dst_factor: wgpu::BlendFactor::One,
+            operation: wgpu::BlendOperation::Add,
+        },
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -664,6 +922,34 @@ fn upload_vertices(
     queue: &wgpu::Queue,
     label: &str,
     vertices: &[Vertex],
+    buffer: &mut wgpu::Buffer,
+    capacity: &mut usize,
+) -> u32 {
+    if vertices.is_empty() {
+        return 0;
+    }
+
+    let bytes = bytemuck::cast_slice(vertices);
+    if vertices.len() > *capacity {
+        *buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some(label),
+            size: bytes.len() as wgpu::BufferAddress,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        *capacity = vertices.len();
+    }
+
+    queue.write_buffer(buffer, 0, bytes);
+    vertices.len() as u32
+}
+
+#[cfg(target_arch = "wasm32")]
+fn upload_glow_vertices(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    label: &str,
+    vertices: &[GlowVertex],
     buffer: &mut wgpu::Buffer,
     capacity: &mut usize,
 ) -> u32 {
@@ -944,6 +1230,43 @@ fn tessellate_commands_with_style_scale(
     vertices
 }
 
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn tessellate_glow_commands(
+    commands: &[VectorCommand],
+    settings: VectorDisplaySettings,
+) -> Vec<GlowVertex> {
+    let mut vertices = Vec::new();
+
+    for layer in settings.glow_layers {
+        for command in commands {
+            match command {
+                VectorCommand::Line(line) => {
+                    push_glow_line_vertices(
+                        &mut vertices,
+                        line.start,
+                        line.end,
+                        line.style,
+                        *layer,
+                    );
+                }
+                VectorCommand::Polyline(polyline) => {
+                    for points in polyline.points.windows(2) {
+                        push_glow_line_vertices(
+                            &mut vertices,
+                            points[0],
+                            points[1],
+                            polyline.style,
+                            *layer,
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    vertices
+}
+
 fn scaled_style(style: StrokeStyle, width_scale: f32, intensity_scale: f32) -> StrokeStyle {
     StrokeStyle {
         width: style.width * width_scale,
@@ -989,6 +1312,107 @@ fn push_line_vertices(vertices: &mut Vec<Vertex>, start: Vec2, end: Vec2, style:
     };
 
     vertices.extend_from_slice(&[a, b, c, a, c, d]);
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn push_glow_line_vertices(
+    vertices: &mut Vec<GlowVertex>,
+    start: Vec2,
+    end: Vec2,
+    style: StrokeStyle,
+    layer: GlowLayer,
+) {
+    let dx = end.x - start.x;
+    let dy = end.y - start.y;
+    let length = (dx * dx + dy * dy).sqrt();
+    if length <= f32::EPSILON || style.width <= 0.0 {
+        return;
+    }
+
+    let radius = style.width * layer.width_scale * 0.5;
+    let tangent_x = dx / length;
+    let tangent_y = dy / length;
+    let normal_x = -tangent_y * radius;
+    let normal_y = tangent_x * radius;
+    let start_cap = Vec2 {
+        x: start.x - tangent_x * radius,
+        y: start.y - tangent_y * radius,
+    };
+    let end_cap = Vec2 {
+        x: end.x + tangent_x * radius,
+        y: end.y + tangent_y * radius,
+    };
+    let color = [
+        style.color.red * style.intensity * layer.intensity_scale,
+        style.color.green * style.intensity * layer.intensity_scale,
+        style.color.blue * style.intensity * layer.intensity_scale,
+        style.color.alpha,
+    ];
+
+    let a = glow_vertex(
+        Vec2 {
+            x: start_cap.x - normal_x,
+            y: start_cap.y - normal_y,
+        },
+        start,
+        end,
+        color,
+        radius,
+        style.width,
+    );
+    let b = glow_vertex(
+        Vec2 {
+            x: end_cap.x - normal_x,
+            y: end_cap.y - normal_y,
+        },
+        start,
+        end,
+        color,
+        radius,
+        style.width,
+    );
+    let c = glow_vertex(
+        Vec2 {
+            x: end_cap.x + normal_x,
+            y: end_cap.y + normal_y,
+        },
+        start,
+        end,
+        color,
+        radius,
+        style.width,
+    );
+    let d = glow_vertex(
+        Vec2 {
+            x: start_cap.x + normal_x,
+            y: start_cap.y + normal_y,
+        },
+        start,
+        end,
+        color,
+        radius,
+        style.width,
+    );
+
+    vertices.extend_from_slice(&[a, b, c, a, c, d]);
+}
+
+fn glow_vertex(
+    position: Vec2,
+    start: Vec2,
+    end: Vec2,
+    color: [f32; 4],
+    radius: f32,
+    core_width: f32,
+) -> GlowVertex {
+    GlowVertex {
+        position: [position.x, position.y],
+        color,
+        segment_start: [start.x, start.y],
+        segment_end: [end.x, end.y],
+        radius,
+        core_width,
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -1068,21 +1492,79 @@ mod tests {
     }
 
     #[test]
-    fn glow_style_scale_widens_tessellated_line() {
-        let vertices = tessellate_commands_with_style_scale(
+    fn layered_glow_tessellates_multiple_soft_emission_bands() {
+        let settings = VectorDisplaySettings::from_preset(VectorDisplayPreset::ArcadeBalanced);
+        let vertices = tessellate_glow_commands(
             &[VectorCommand::Line(Line {
                 start: Vec2 { x: -0.75, y: 0.0 },
                 end: Vec2 { x: 0.75, y: 0.0 },
                 style: white_style(0.04),
             })],
-            6.0,
-            0.55,
+            settings,
         );
 
-        assert_eq!(vertices.len(), 6);
-        assert_eq!(vertices[0].position, [-0.75, -0.12]);
-        assert_eq!(vertices[2].position, [0.75, 0.12]);
-        assert_eq!(vertices[0].color, [0.55, 0.55, 0.55, 1.0]);
+        assert_eq!(vertices.len(), settings.glow_layers.len() * 6);
+        assert_vec2_near(vertices[0].position, [-0.794, -0.044]);
+        assert_vec2_near(vertices[2].position, [0.794, 0.044]);
+        assert_color_near(vertices[0].color, [0.28, 0.28, 0.28, 1.0]);
+        assert_vec2_near(vertices[12].position, [-0.93, -0.18]);
+        assert_vec2_near(vertices[14].position, [0.93, 0.18]);
+        assert_color_near(vertices[12].color, [0.045, 0.045, 0.045, 1.0]);
+        assert_eq!(vertices[0].segment_start, [-0.75, 0.0]);
+        assert_eq!(vertices[0].segment_end, [0.75, 0.0]);
+        assert_near(vertices[0].radius, 0.044);
+        assert_near(vertices[12].radius, 0.18);
+    }
+
+    #[test]
+    fn display_presets_have_valid_glow_layers() {
+        for preset in [
+            VectorDisplayPreset::ArcadeBalanced,
+            VectorDisplayPreset::MonochromeBeam,
+            VectorDisplayPreset::ColorQuadraScan,
+            VectorDisplayPreset::CleanNeon,
+        ] {
+            let settings = VectorDisplaySettings::from_preset(preset);
+
+            assert!(!settings.glow_layers.is_empty());
+            for layer in settings.glow_layers {
+                assert!(layer.width_scale.is_finite());
+                assert!(layer.intensity_scale.is_finite());
+                assert!(layer.width_scale > 1.0);
+                assert!(layer.intensity_scale > 0.0);
+            }
+        }
+    }
+
+    #[test]
+    fn centered_viewport_preserves_four_by_three_aspect() {
+        assert_eq!(
+            RenderViewport::centered_4_3(1600, 600),
+            RenderViewport {
+                x: 400,
+                y: 0,
+                width: 800,
+                height: 600,
+            }
+        );
+        assert_eq!(
+            RenderViewport::centered_4_3(800, 1000),
+            RenderViewport {
+                x: 0,
+                y: 200,
+                width: 800,
+                height: 600,
+            }
+        );
+        assert_eq!(
+            RenderViewport::centered_4_3(800, 600),
+            RenderViewport {
+                x: 0,
+                y: 0,
+                width: 800,
+                height: 600,
+            }
+        );
     }
 
     #[test]
@@ -1131,5 +1613,20 @@ mod tests {
         let dx = end.x - start.x;
         let dy = end.y - start.y;
         (dx * dx + dy * dy).sqrt()
+    }
+
+    fn assert_vec2_near(actual: [f32; 2], expected: [f32; 2]) {
+        assert_near(actual[0], expected[0]);
+        assert_near(actual[1], expected[1]);
+    }
+
+    fn assert_color_near(actual: [f32; 4], expected: [f32; 4]) {
+        for index in 0..4 {
+            assert_near(actual[index], expected[index]);
+        }
+    }
+
+    fn assert_near(actual: f32, expected: f32) {
+        assert!((actual - expected).abs() <= 0.00001);
     }
 }
