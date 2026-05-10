@@ -18,4 +18,4 @@ Available routes once Vite is running:
 EOF
 
 npm run build:wasm --prefix "$WEB_DIR"
-npm run dev --prefix "$WEB_DIR" -- --host "$HOST" --port "$PORT"
+npm run dev --prefix "$WEB_DIR" -- --host "$HOST" --port "$PORT" --strictPort

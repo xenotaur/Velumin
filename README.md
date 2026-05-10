@@ -35,8 +35,9 @@ Available demo routes:
 
 - `/` renders the baseline white-line smoke scene.
 - `/?demo=blasterites` renders the deterministic Blasterites-inspired tester scene with a rotating ship, bullet, approaching asteroid, spark explosion, glow, scanlines, and subtle pulse/wobble.
+- `/?demo=tuner` renders the Blasterites tester with live sliders for vector line width and glow-layer tuning.
 
-The Blasterites tester is a renderer validation harness, not a playable game. It is deterministic from elapsed time so future browser or screenshot smoke checks can target known moments in the animation.
+The Blasterites tester and tuner are renderer validation harnesses, not playable games. The tester is deterministic from elapsed time so future browser or screenshot smoke checks can target known moments in the animation.
 
 ## Canonical Local Validation
 

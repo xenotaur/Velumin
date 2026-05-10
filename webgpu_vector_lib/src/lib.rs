@@ -1343,14 +1343,9 @@ fn tessellate_glow_commands(
                     );
                 }
                 VectorCommand::Polyline(polyline) => {
+                    let style = scaled_style(polyline.style, settings.stroke_width_scale(), 1.0);
                     for points in polyline.points.windows(2) {
-                        push_glow_line_vertices(
-                            &mut vertices,
-                            points[0],
-                            points[1],
-                            scaled_style(polyline.style, settings.stroke_width_scale(), 1.0),
-                            *layer,
-                        );
+                        push_glow_line_vertices(&mut vertices, points[0], points[1], style, *layer);
                     }
                 }
             }

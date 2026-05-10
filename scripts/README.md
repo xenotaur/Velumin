@@ -15,6 +15,7 @@ Run scripts from the repository root.
 | `scripts/lint` | Run Clippy for the WASM target with warnings denied. |
 | `scripts/test` | Run Rust tests. |
 | `scripts/baseline` | Rebuild the Rust/WASM/Vite browser baseline. |
+| `scripts/demos` | Build the WASM package and start the Vite demo server. |
 | `scripts/validate` | Run the full canonical validation sequence. |
 
 ## Recommended Workflow
@@ -111,6 +112,10 @@ npm run build --prefix webgpu_vector_lib/web
 ```
 
 Run this when Rust/WASM/Vite build behavior, browser harness behavior, shaders, or renderer setup may be affected.
+
+### `scripts/demos`
+
+Builds the WASM package, prints the available browser demo routes, and starts the local Vite server. The script uses a strict port so the printed routes match the running server.
 
 ### `scripts/validate`
 
