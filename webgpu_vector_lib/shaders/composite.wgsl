@@ -30,15 +30,26 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let dimensions = vec2<f32>(textureDimensions(glow_texture));
     let texel = 1.0 / dimensions;
 
-    var glow = textureSample(glow_texture, glow_sampler, input.uv).rgb * 0.32;
-    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(texel.x, 0.0)).rgb * 0.12;
-    glow += textureSample(glow_texture, glow_sampler, input.uv - vec2<f32>(texel.x, 0.0)).rgb * 0.12;
-    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(0.0, texel.y)).rgb * 0.12;
-    glow += textureSample(glow_texture, glow_sampler, input.uv - vec2<f32>(0.0, texel.y)).rgb * 0.12;
-    glow += textureSample(glow_texture, glow_sampler, input.uv + texel).rgb * 0.05;
-    glow += textureSample(glow_texture, glow_sampler, input.uv - texel).rgb * 0.05;
-    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(texel.x, -texel.y)).rgb * 0.05;
-    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(-texel.x, texel.y)).rgb * 0.05;
+    let near = texel * 1.5;
+    let far = texel * 4.0;
 
-    return vec4<f32>(glow * 1.8, 1.0);
+    var glow = textureSample(glow_texture, glow_sampler, input.uv).rgb * 0.26;
+    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(near.x, 0.0)).rgb * 0.1;
+    glow += textureSample(glow_texture, glow_sampler, input.uv - vec2<f32>(near.x, 0.0)).rgb * 0.1;
+    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(0.0, near.y)).rgb * 0.1;
+    glow += textureSample(glow_texture, glow_sampler, input.uv - vec2<f32>(0.0, near.y)).rgb * 0.1;
+    glow += textureSample(glow_texture, glow_sampler, input.uv + near).rgb * 0.055;
+    glow += textureSample(glow_texture, glow_sampler, input.uv - near).rgb * 0.055;
+    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(near.x, -near.y)).rgb * 0.055;
+    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(-near.x, near.y)).rgb * 0.055;
+    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(far.x, 0.0)).rgb * 0.035;
+    glow += textureSample(glow_texture, glow_sampler, input.uv - vec2<f32>(far.x, 0.0)).rgb * 0.035;
+    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(0.0, far.y)).rgb * 0.035;
+    glow += textureSample(glow_texture, glow_sampler, input.uv - vec2<f32>(0.0, far.y)).rgb * 0.035;
+    glow += textureSample(glow_texture, glow_sampler, input.uv + far).rgb * 0.02;
+    glow += textureSample(glow_texture, glow_sampler, input.uv - far).rgb * 0.02;
+    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(far.x, -far.y)).rgb * 0.02;
+    glow += textureSample(glow_texture, glow_sampler, input.uv + vec2<f32>(-far.x, far.y)).rgb * 0.02;
+
+    return vec4<f32>(glow * 1.55, 1.0);
 }

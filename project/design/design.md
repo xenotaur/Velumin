@@ -50,6 +50,8 @@
 ## Active Design Proposals
 - `DP-0002 Cross-Platform Vector Renderer Architecture` is the next architecture horizon: platform-neutral core, shared `wgpu` renderer, browser frontend, and later native `winit` frontend.
 - `DP-0003 Extensible 2D Scene and Material Model` proposes a broader scene/material model beyond vector-display emulation.
+- `DP-0005 Blasterites Tester Demo and Visual Smoke` proposes a deterministic browser visual harness for richer vector-renderer inspection.
+- `DP-0006 Vector CRT Renderer Migration` proposes the next focused renderer workstream for viewport stability, production glow tuning, and internal display presets.
 
 ## Future Extensions (Non-binding)
 - A stable public API for vector primitives and scenes.
