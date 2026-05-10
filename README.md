@@ -11,6 +11,7 @@ Important entrypoints:
 - `AGENTS.md`: guidance for AI coding agents working in this repository.
 - `REVIEWS.md`: protocol for addressing pull request review feedback.
 - `STYLE.md`: minimal style guidance and links to canonical Rust style references.
+- `.lrh/`: project-local LRH templates that adapt reusable harness prompts to Velumin's Rust/WASM/WebGPU workflow.
 - `scripts/`: repository-owned local validation commands.
 - `.github/workflows/`: GitHub Actions validation workflows.
 - `project/`: project-control artifacts; treat this as the source of truth for roadmap, design, focus, evidence, and status.
