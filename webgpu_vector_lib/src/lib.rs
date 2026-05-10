@@ -70,15 +70,15 @@ impl VectorDisplaySettings {
     const ARCADE_BALANCED_GLOW: [GlowLayer; 3] = [
         GlowLayer {
             width_scale: 2.2,
-            intensity_scale: 0.28,
+            intensity_scale: 0.33,
         },
         GlowLayer {
             width_scale: 5.0,
-            intensity_scale: 0.11,
+            intensity_scale: 0.12,
         },
         GlowLayer {
-            width_scale: 9.0,
-            intensity_scale: 0.045,
+            width_scale: 12.3,
+            intensity_scale: 0.03,
         },
     ];
     const MONOCHROME_BEAM_GLOW: [GlowLayer; 2] = [
@@ -123,7 +123,11 @@ impl VectorDisplaySettings {
             VectorDisplayPreset::ColorQuadraScan => &Self::COLOR_QUADRA_SCAN_GLOW,
             VectorDisplayPreset::CleanNeon => &Self::CLEAN_NEON_GLOW,
         };
-        Self::from_layers(layers, 1.0)
+        let stroke_width_scale = match preset {
+            VectorDisplayPreset::ArcadeBalanced => 0.35,
+            _ => 1.0,
+        };
+        Self::from_layers(layers, stroke_width_scale)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -169,7 +173,7 @@ impl VectorDisplaySettings {
         Self {
             glow_layers,
             glow_layer_count,
-            stroke_width_scale: stroke_width_scale.clamp(0.35, 3.0),
+            stroke_width_scale: stroke_width_scale.clamp(0.25, 3.0),
         }
     }
 
@@ -1593,16 +1597,30 @@ mod tests {
         );
 
         assert_eq!(vertices.len(), settings.glow_layers().len() * 6);
-        assert_vec2_near(vertices[0].position, [-0.794, -0.044]);
-        assert_vec2_near(vertices[2].position, [0.794, 0.044]);
-        assert_color_near(vertices[0].color, [0.28, 0.28, 0.28, 1.0]);
-        assert_vec2_near(vertices[12].position, [-0.93, -0.18]);
-        assert_vec2_near(vertices[14].position, [0.93, 0.18]);
-        assert_color_near(vertices[12].color, [0.045, 0.045, 0.045, 1.0]);
+        assert_vec2_near(vertices[0].position, [-0.7654, -0.0154]);
+        assert_vec2_near(vertices[2].position, [0.7654, 0.0154]);
+        assert_color_near(vertices[0].color, [0.33, 0.33, 0.33, 1.0]);
+        assert_vec2_near(vertices[12].position, [-0.8361, -0.0861]);
+        assert_vec2_near(vertices[14].position, [0.8361, 0.0861]);
+        assert_color_near(vertices[12].color, [0.03, 0.03, 0.03, 1.0]);
         assert_eq!(vertices[0].segment_start, [-0.75, 0.0]);
         assert_eq!(vertices[0].segment_end, [0.75, 0.0]);
-        assert_near(vertices[0].radius, 0.044);
-        assert_near(vertices[12].radius, 0.18);
+        assert_near(vertices[0].radius, 0.0154);
+        assert_near(vertices[12].radius, 0.0861);
+    }
+
+    #[test]
+    fn arcade_balanced_preset_encodes_tuned_defaults() {
+        let settings = VectorDisplaySettings::from_preset(VectorDisplayPreset::ArcadeBalanced);
+
+        assert_near(settings.stroke_width_scale(), 0.35);
+        assert_eq!(settings.glow_layers().len(), 3);
+        assert_near(settings.glow_layers()[0].width_scale, 2.2);
+        assert_near(settings.glow_layers()[0].intensity_scale, 0.33);
+        assert_near(settings.glow_layers()[1].width_scale, 5.0);
+        assert_near(settings.glow_layers()[1].intensity_scale, 0.12);
+        assert_near(settings.glow_layers()[2].width_scale, 12.3);
+        assert_near(settings.glow_layers()[2].intensity_scale, 0.03);
     }
 
     #[test]
@@ -1627,16 +1645,18 @@ mod tests {
 
     #[test]
     fn tuner_settings_are_clamped_to_renderer_bounds() {
-        let settings = VectorDisplaySettings::from_tuner(9.0, 0.1, -1.0, 5.0, 0.25, 99.0, 2.0);
+        let min_settings = VectorDisplaySettings::from_tuner(0.1, 0.1, -1.0, 5.0, 0.25, 99.0, 2.0);
+        let max_settings = VectorDisplaySettings::from_tuner(9.0, 0.1, -1.0, 5.0, 0.25, 99.0, 2.0);
 
-        assert_near(settings.stroke_width_scale(), 3.0);
-        assert_eq!(settings.glow_layers().len(), 3);
-        assert_near(settings.glow_layers()[0].width_scale, 1.0);
-        assert_near(settings.glow_layers()[0].intensity_scale, 0.0);
-        assert_near(settings.glow_layers()[1].width_scale, 5.0);
-        assert_near(settings.glow_layers()[1].intensity_scale, 0.25);
-        assert_near(settings.glow_layers()[2].width_scale, 16.0);
-        assert_near(settings.glow_layers()[2].intensity_scale, 1.0);
+        assert_near(min_settings.stroke_width_scale(), 0.25);
+        assert_near(max_settings.stroke_width_scale(), 3.0);
+        assert_eq!(min_settings.glow_layers().len(), 3);
+        assert_near(min_settings.glow_layers()[0].width_scale, 1.0);
+        assert_near(min_settings.glow_layers()[0].intensity_scale, 0.0);
+        assert_near(min_settings.glow_layers()[1].width_scale, 5.0);
+        assert_near(min_settings.glow_layers()[1].intensity_scale, 0.25);
+        assert_near(min_settings.glow_layers()[2].width_scale, 16.0);
+        assert_near(min_settings.glow_layers()[2].intensity_scale, 1.0);
     }
 
     #[test]
