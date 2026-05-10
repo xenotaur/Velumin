@@ -13,6 +13,7 @@ cat <<EOF
 Available routes once Vite is running:
   baseline:   $BASE_URL/
   blasterites: $BASE_URL/?demo=blasterites
+  tuner:      $BASE_URL/?demo=tuner
 
 EOF
 

@@ -19,6 +19,55 @@
     background-color: black;
   }
 
+  #tuner {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    display: none;
+    width: min(22rem, calc(100vw - 2rem));
+    padding: 0.85rem;
+    color: rgb(225, 242, 255);
+    background: rgba(4, 8, 12, 0.78);
+    border: 1px solid rgba(120, 210, 255, 0.28);
+    border-radius: 6px;
+    font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    backdrop-filter: blur(8px);
+  }
+
+  #tuner[data-visible="true"] {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .tuner-row {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr 3rem;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .tuner-row output {
+    text-align: right;
+    color: rgb(151, 226, 255);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: rgb(72, 210, 255);
+  }
+
+  @media (max-width: 640px) {
+    #tuner {
+      top: auto;
+      right: 0.75rem;
+      bottom: 0.75rem;
+      left: 0.75rem;
+      width: auto;
+      max-height: 45vh;
+      overflow: auto;
+    }
+  }
+
   #status {
     position: fixed;
     inset: 0;
@@ -39,23 +88,84 @@
 </head>
 <body>
     <canvas id="canvas" width="800" height="600"></canvas>
+    <section id="tuner" aria-label="Vector display tuner">
+        <label class="tuner-row">
+            <span>line width</span>
+            <input id="line-width" data-setting="lineWidth" type="range" min="0.35" max="3" step="0.05" value="1">
+            <output for="line-width">1</output>
+        </label>
+        <label class="tuner-row">
+            <span>near width</span>
+            <input id="near-width" data-setting="nearWidth" type="range" min="1" max="6" step="0.1" value="2.2">
+            <output for="near-width">2.2</output>
+        </label>
+        <label class="tuner-row">
+            <span>near light</span>
+            <input id="near-light" data-setting="nearLight" type="range" min="0" max="0.6" step="0.01" value="0.28">
+            <output for="near-light">0.28</output>
+        </label>
+        <label class="tuner-row">
+            <span>mid width</span>
+            <input id="mid-width" data-setting="midWidth" type="range" min="1" max="10" step="0.1" value="5.0">
+            <output for="mid-width">5.0</output>
+        </label>
+        <label class="tuner-row">
+            <span>mid light</span>
+            <input id="mid-light" data-setting="midLight" type="range" min="0" max="0.35" step="0.005" value="0.11">
+            <output for="mid-light">0.11</output>
+        </label>
+        <label class="tuner-row">
+            <span>far width</span>
+            <input id="far-width" data-setting="farWidth" type="range" min="1" max="16" step="0.1" value="9.0">
+            <output for="far-width">9.0</output>
+        </label>
+        <label class="tuner-row">
+            <span>far light</span>
+            <input id="far-light" data-setting="farLight" type="range" min="0" max="0.2" step="0.005" value="0.045">
+            <output for="far-light">0.045</output>
+        </label>
+    </section>
     <div id="status" role="status" aria-live="polite"></div>
     <script type="module">
         import init, { WebGPU } from "@pkg/webgpu_vector_lib.js";
 
         const status = document.getElementById("status");
+        const tuner = document.getElementById("tuner");
         const params = new URLSearchParams(window.location.search);
         const demo = params.get("demo") || "baseline";
+        const tunerControls = [...document.querySelectorAll("#tuner input[type='range']")];
+        const tunerState = Object.fromEntries(
+            tunerControls.map((input) => [input.dataset.setting, Number(input.value)])
+        );
 
         function showUnsupported(message) {
             status.textContent = message;
             status.dataset.visible = "true";
         }
 
+        function syncTunerOutputs() {
+            for (const input of tunerControls) {
+                const value = Number(input.value);
+                tunerState[input.dataset.setting] = value;
+                input.nextElementSibling.value = value.toString();
+            }
+        }
+
         function renderOrReport(gpu, time = performance.now()) {
             try {
                 if (demo === "blasterites") {
                     gpu.render_blasterites_tester(time);
+                } else if (demo === "tuner") {
+                    gpu.render_blasterites_tuner(
+                        time,
+                        tunerState.lineWidth,
+                        tunerState.nearWidth,
+                        tunerState.nearLight,
+                        tunerState.midWidth,
+                        tunerState.midLight,
+                        tunerState.farWidth,
+                        tunerState.farLight,
+                    );
                 } else {
                     gpu.render();
                 }
@@ -69,7 +179,14 @@
             try {
                 await init();
                 const gpu = await WebGPU.create("canvas");
-                if (demo === "blasterites") {
+                if (demo === "tuner") {
+                    tuner.dataset.visible = "true";
+                    syncTunerOutputs();
+                    for (const input of tunerControls) {
+                        input.addEventListener("input", syncTunerOutputs);
+                    }
+                }
+                if (demo === "blasterites" || demo === "tuner") {
                     const animate = (time) => {
                         renderOrReport(gpu, time);
                         requestAnimationFrame(animate);

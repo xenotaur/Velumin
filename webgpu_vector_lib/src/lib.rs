@@ -60,7 +60,9 @@ impl GlowVertex {
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 struct VectorDisplaySettings {
-    glow_layers: &'static [GlowLayer],
+    glow_layers: [GlowLayer; 3],
+    glow_layer_count: usize,
+    stroke_width_scale: f32,
 }
 
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
@@ -115,20 +117,68 @@ impl VectorDisplaySettings {
     ];
 
     fn from_preset(preset: VectorDisplayPreset) -> Self {
-        match preset {
-            VectorDisplayPreset::ArcadeBalanced => Self {
-                glow_layers: &Self::ARCADE_BALANCED_GLOW,
-            },
-            VectorDisplayPreset::MonochromeBeam => Self {
-                glow_layers: &Self::MONOCHROME_BEAM_GLOW,
-            },
-            VectorDisplayPreset::ColorQuadraScan => Self {
-                glow_layers: &Self::COLOR_QUADRA_SCAN_GLOW,
-            },
-            VectorDisplayPreset::CleanNeon => Self {
-                glow_layers: &Self::CLEAN_NEON_GLOW,
-            },
+        let layers: &[GlowLayer] = match preset {
+            VectorDisplayPreset::ArcadeBalanced => &Self::ARCADE_BALANCED_GLOW,
+            VectorDisplayPreset::MonochromeBeam => &Self::MONOCHROME_BEAM_GLOW,
+            VectorDisplayPreset::ColorQuadraScan => &Self::COLOR_QUADRA_SCAN_GLOW,
+            VectorDisplayPreset::CleanNeon => &Self::CLEAN_NEON_GLOW,
+        };
+        Self::from_layers(layers, 1.0)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn from_tuner(
+        stroke_width_scale: f32,
+        near_width_scale: f32,
+        near_intensity_scale: f32,
+        mid_width_scale: f32,
+        mid_intensity_scale: f32,
+        far_width_scale: f32,
+        far_intensity_scale: f32,
+    ) -> Self {
+        Self::from_layers(
+            &[
+                GlowLayer {
+                    width_scale: near_width_scale,
+                    intensity_scale: near_intensity_scale,
+                },
+                GlowLayer {
+                    width_scale: mid_width_scale,
+                    intensity_scale: mid_intensity_scale,
+                },
+                GlowLayer {
+                    width_scale: far_width_scale,
+                    intensity_scale: far_intensity_scale,
+                },
+            ],
+            stroke_width_scale,
+        )
+    }
+
+    fn from_layers(layers: &[GlowLayer], stroke_width_scale: f32) -> Self {
+        let mut glow_layers = [GlowLayer::disabled(); 3];
+        let glow_layer_count = layers.len().min(glow_layers.len());
+
+        for (target, source) in glow_layers.iter_mut().zip(layers.iter()) {
+            *target = GlowLayer {
+                width_scale: source.width_scale.clamp(1.0, 16.0),
+                intensity_scale: source.intensity_scale.clamp(0.0, 1.0),
+            };
         }
+
+        Self {
+            glow_layers,
+            glow_layer_count,
+            stroke_width_scale: stroke_width_scale.clamp(0.35, 3.0),
+        }
+    }
+
+    fn glow_layers(&self) -> &[GlowLayer] {
+        &self.glow_layers[..self.glow_layer_count]
+    }
+
+    fn stroke_width_scale(&self) -> f32 {
+        self.stroke_width_scale
     }
 }
 
@@ -146,6 +196,15 @@ enum VectorDisplayPreset {
 struct GlowLayer {
     width_scale: f32,
     intensity_scale: f32,
+}
+
+impl GlowLayer {
+    const fn disabled() -> Self {
+        Self {
+            width_scale: 1.0,
+            intensity_scale: 0.0,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -339,6 +398,36 @@ impl WebGPU {
         let window = web_sys::window().ok_or("No window available")?;
         let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
         self.renderer.resize(width, height);
+        let wrapped_time_ms = time_ms.rem_euclid(BLASTERITES_CYCLE_MS as f64) as f32;
+        self.renderer
+            .render(&blasterites_tester_scene(wrapped_time_ms), true)
+    }
+
+    #[wasm_bindgen]
+    #[allow(clippy::too_many_arguments)]
+    pub fn render_blasterites_tuner(
+        &mut self,
+        time_ms: f64,
+        stroke_width_scale: f32,
+        near_width_scale: f32,
+        near_intensity_scale: f32,
+        mid_width_scale: f32,
+        mid_intensity_scale: f32,
+        far_width_scale: f32,
+        far_intensity_scale: f32,
+    ) -> Result<(), JsValue> {
+        let window = web_sys::window().ok_or("No window available")?;
+        let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
+        self.renderer.resize(width, height);
+        self.renderer.display_settings = VectorDisplaySettings::from_tuner(
+            stroke_width_scale,
+            near_width_scale,
+            near_intensity_scale,
+            mid_width_scale,
+            mid_intensity_scale,
+            far_width_scale,
+            far_intensity_scale,
+        );
         let wrapped_time_ms = time_ms.rem_euclid(BLASTERITES_CYCLE_MS as f64) as f32;
         self.renderer
             .render(&blasterites_tester_scene(wrapped_time_ms), true)
@@ -700,7 +789,11 @@ impl Renderer {
     }
 
     fn upload_vector_commands(&mut self, commands: &[VectorCommand]) {
-        let vertices = tessellate_commands(commands);
+        let vertices = tessellate_commands_with_style_scale(
+            commands,
+            self.display_settings.stroke_width_scale(),
+            1.0,
+        );
         self.vertex_count = upload_vertices(
             &self.device,
             &self.queue,
@@ -1191,7 +1284,7 @@ fn stroke(width: f32, color: Color, intensity: f32) -> StrokeStyle {
     }
 }
 
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+#[allow(dead_code)]
 fn tessellate_commands(commands: &[VectorCommand]) -> Vec<Vertex> {
     tessellate_commands_with_style_scale(commands, 1.0, 1.0)
 }
@@ -1237,7 +1330,7 @@ fn tessellate_glow_commands(
 ) -> Vec<GlowVertex> {
     let mut vertices = Vec::new();
 
-    for layer in settings.glow_layers {
+    for layer in settings.glow_layers() {
         for command in commands {
             match command {
                 VectorCommand::Line(line) => {
@@ -1245,7 +1338,7 @@ fn tessellate_glow_commands(
                         &mut vertices,
                         line.start,
                         line.end,
-                        line.style,
+                        scaled_style(line.style, settings.stroke_width_scale(), 1.0),
                         *layer,
                     );
                 }
@@ -1255,7 +1348,7 @@ fn tessellate_glow_commands(
                             &mut vertices,
                             points[0],
                             points[1],
-                            polyline.style,
+                            scaled_style(polyline.style, settings.stroke_width_scale(), 1.0),
                             *layer,
                         );
                     }
@@ -1330,6 +1423,7 @@ fn push_glow_line_vertices(
     }
 
     let radius = style.width * layer.width_scale * 0.5;
+    let core_width = style.width;
     let tangent_x = dx / length;
     let tangent_y = dy / length;
     let normal_x = -tangent_y * radius;
@@ -1358,7 +1452,7 @@ fn push_glow_line_vertices(
         end,
         color,
         radius,
-        style.width,
+        core_width,
     );
     let b = glow_vertex(
         Vec2 {
@@ -1369,7 +1463,7 @@ fn push_glow_line_vertices(
         end,
         color,
         radius,
-        style.width,
+        core_width,
     );
     let c = glow_vertex(
         Vec2 {
@@ -1380,7 +1474,7 @@ fn push_glow_line_vertices(
         end,
         color,
         radius,
-        style.width,
+        core_width,
     );
     let d = glow_vertex(
         Vec2 {
@@ -1391,7 +1485,7 @@ fn push_glow_line_vertices(
         end,
         color,
         radius,
-        style.width,
+        core_width,
     );
 
     vertices.extend_from_slice(&[a, b, c, a, c, d]);
@@ -1503,7 +1597,7 @@ mod tests {
             settings,
         );
 
-        assert_eq!(vertices.len(), settings.glow_layers.len() * 6);
+        assert_eq!(vertices.len(), settings.glow_layers().len() * 6);
         assert_vec2_near(vertices[0].position, [-0.794, -0.044]);
         assert_vec2_near(vertices[2].position, [0.794, 0.044]);
         assert_color_near(vertices[0].color, [0.28, 0.28, 0.28, 1.0]);
@@ -1526,14 +1620,45 @@ mod tests {
         ] {
             let settings = VectorDisplaySettings::from_preset(preset);
 
-            assert!(!settings.glow_layers.is_empty());
-            for layer in settings.glow_layers {
+            assert!(!settings.glow_layers().is_empty());
+            for layer in settings.glow_layers() {
                 assert!(layer.width_scale.is_finite());
                 assert!(layer.intensity_scale.is_finite());
                 assert!(layer.width_scale > 1.0);
                 assert!(layer.intensity_scale > 0.0);
             }
         }
+    }
+
+    #[test]
+    fn tuner_settings_are_clamped_to_renderer_bounds() {
+        let settings = VectorDisplaySettings::from_tuner(9.0, 0.1, -1.0, 5.0, 0.25, 99.0, 2.0);
+
+        assert_near(settings.stroke_width_scale(), 3.0);
+        assert_eq!(settings.glow_layers().len(), 3);
+        assert_near(settings.glow_layers()[0].width_scale, 1.0);
+        assert_near(settings.glow_layers()[0].intensity_scale, 0.0);
+        assert_near(settings.glow_layers()[1].width_scale, 5.0);
+        assert_near(settings.glow_layers()[1].intensity_scale, 0.25);
+        assert_near(settings.glow_layers()[2].width_scale, 16.0);
+        assert_near(settings.glow_layers()[2].intensity_scale, 1.0);
+    }
+
+    #[test]
+    fn tuner_line_width_scales_crisp_and_glow_geometry() {
+        let settings = VectorDisplaySettings::from_tuner(2.0, 2.2, 0.28, 5.0, 0.11, 9.0, 0.045);
+        let commands = [VectorCommand::Line(Line {
+            start: Vec2 { x: -0.75, y: 0.0 },
+            end: Vec2 { x: 0.75, y: 0.0 },
+            style: white_style(0.04),
+        })];
+        let crisp_vertices =
+            tessellate_commands_with_style_scale(&commands, settings.stroke_width_scale(), 1.0);
+        let glow_vertices = tessellate_glow_commands(&commands, settings);
+
+        assert_vec2_near(crisp_vertices[0].position, [-0.75, -0.04]);
+        assert_near(glow_vertices[0].radius, 0.088);
+        assert_near(glow_vertices[0].core_width, 0.08);
     }
 
     #[test]
