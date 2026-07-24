@@ -12,7 +12,7 @@ health: yellow
 - Velumin is an early-stage retro vector-graphics library with an adopted Rust/WASM/WebGPU browser rendering baseline.
 - LRH project-control artifacts make intent, constraints, evidence, and uncertainty explicit.
 - DP-0001, DP-0004, and DP-0005 are adopted and implemented. DP-0005 shipped the deterministic Blasterites tester and live tuner browser demos (merged across PRs #3-#6).
-- DP-0006 (Vector CRT renderer migration) is partially implemented and is the active renderer workstream: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, but the visual model is not yet backed by recorded browser evidence.
+- DP-0006 (Vector CRT renderer migration) is partially implemented and is the active renderer workstream: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, and the default output's browser visual-smoke evidence is now recorded (EV-0009); adopting DP-0006 is a maintainer decision.
 - DP-0002 and DP-0003 remain proposed follow-up design directions.
 
 ## Evidence Basis
@@ -21,24 +21,24 @@ health: yellow
 - `webgpu_vector_lib/shaders/` shows the crisp line pass (`line.wgsl`), glow and composite passes (`glow.wgsl`, `composite.wgsl`), and the tester-only scanline composite (`tester_composite.wgsl`).
 - `webgpu_vector_lib/web/index.html` shows the browser canvas harness with query-parameter demo routing and the tuner control panel.
 - `scripts/demos` builds the WASM package and serves the baseline, Blasterites, and tuner routes.
-- `project/evidence/EV-0002.md` through `EV-0006.md` record DP-0001 implementation verification; `EV-0007.md` records DP-0004; `EV-0008.md` records DP-0005/DP-0006 code verification.
-- `scripts/validate` is the canonical local validation command.
+- `project/evidence/EV-0002.md` through `EV-0006.md` record DP-0001 implementation verification; `EV-0007.md` records DP-0004; `EV-0008.md` records DP-0005/DP-0006 code verification; `EV-0009.md` records the browser visual-smoke capture of the demo scenes.
+- `scripts/validate` is the canonical local validation command; `scripts/demos` serves the browser demos.
 
 ## Current Health
-- Yellow: project identity, the browser/WebGPU baseline, the validation workflow, and the Blasterites demos are all visible and merged, but the Vector CRT renderer visual model, public vector/scene API design, and cross-platform architecture are not yet complete, and browser visual smoke evidence for the demo scenes has not been separately recorded.
+- Yellow: project identity, the browser/WebGPU baseline, the validation workflow, the Blasterites demos, and now a browser visual-smoke capture of the demo scenes (EV-0009) are all visible and merged, but the Vector CRT renderer is only partially adopted (internal presets, public API undecided), and public vector/scene API design and cross-platform architecture are not yet complete.
 
 ## Active Priorities
 - Preserve the adopted DP-0001 baseline, DP-0004 validation workflow, and DP-0005 demos.
-- Advance DP-0006 Vector CRT rendering: record browser/screenshot visual evidence for the Arcade Balanced target and decide whether the internal preset set becomes a public API.
+- Advance DP-0006 Vector CRT rendering: its default output now has browser visual-smoke evidence (EV-0009); the maintainer adoption decision and optional follow-ups (public-preset-API question, non-default preset capture, automatable check) remain.
 - Keep design proposal lifecycle metadata and directories aligned with what is merged.
 
 ## Risks
-- The Vector CRT visual model (glow falloff, presets) has landed in code but is not yet validated by recorded browser evidence; rendering quality should not be overstated until it is.
+- The Vector CRT visual model (glow falloff, presets) has landed in code and its default output is now validated by browser visual-smoke capture (EV-0009), though not yet by an automated/committed check; the non-default presets are not yet captured and their quality should not be overstated.
 - The `VectorDisplayPreset` set is currently internal (`#[allow(dead_code)]`); treating it as a stable public API would be premature.
 - Browser/WebGPU behavior may vary and should be validated explicitly before claims are made.
 
 ## Recommended Next Actions
-1. Record a browser/screenshot visual smoke run for `/?demo=blasterites` and `/?demo=tuner` at known deterministic moments (completes the DP-0005/DP-0006 evidence gap).
-2. Decide whether DP-0006's internal preset set becomes a selectable public API, then drive DP-0006 to adoption once visual evidence exists.
+1. Add an automatable/committed screenshot smoke check at the deterministic tester frames (EV-0009 captured them manually; a committed check would let CI guard regressions).
+2. Decide whether DP-0006's internal preset set becomes a selectable public API, and visually capture the non-default presets, then drive DP-0006 to adoption.
 3. Select DP-0002 (architecture split) or DP-0003 (scene/material model) as the workstream after the renderer stabilizes.
 4. Define the first public vector primitive or scene API target.

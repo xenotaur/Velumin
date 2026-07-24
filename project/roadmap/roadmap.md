@@ -36,7 +36,7 @@ owner: project maintainers
 ## Active Horizon: DP-0006 Vector CRT Renderer Migration
 - Migrate the widened-line glow spike to an internal-first Vector CRT display renderer tuned against the Blasterites tester, preserving the existing public WASM entrypoints.
 - Already landed: a fixed 4:3 centered viewport (no window-resize distortion), additive multi-layer glow compositing, and an internal `VectorDisplayPreset` set with `ArcadeBalanced` as the tuning target.
-- Remaining before adoption: recorded browser/screenshot visual evidence that Arcade Balanced meets its acceptance target, and a decision on whether the internal preset set becomes a public API.
+- Browser visual-smoke evidence for the Arcade Balanced target is recorded (EV-0009); adopting DP-0006 is a maintainer decision, with optional follow-ups (public-preset-API decision, non-default preset capture, automatable smoke check) rather than hard prerequisites.
 
 ## Next Horizon: DP-0002 Cross-Platform Renderer Architecture
 - After the Vector CRT renderer stabilizes, split Velumin toward a platform-neutral core, shared `wgpu` renderer, browser frontend, and later native desktop frontend.
