@@ -1,10 +1,16 @@
 ---
 id: WI-RENDER-0001
 title: Preserve Browser Rendering Baseline
+type: deliverable
 status: resolved
 priority: high
 owner: project maintainers
-depends_on: WI-BOOTSTRAP-0001---
+depends_on:
+  - WI-BOOTSTRAP-0001
+blocked: false
+blocked_reason: null
+resolution: Documented the clean Rust/WASM/Vite build and demo workflow, added npm baseline scripts, and recorded browser visual verification of the white-line smoke baseline in EV-0002.
+---
 
 # WI-RENDER-0001: Preserve Browser Rendering Baseline
 

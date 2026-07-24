@@ -1,10 +1,16 @@
 ---
 id: WI-RENDER-0002
 title: Upgrade to Modern WebGPU-First wgpu
+type: deliverable
 status: resolved
 priority: high
 owner: project maintainers
-depends_on: WI-RENDER-0001---
+depends_on:
+  - WI-RENDER-0001
+blocked: false
+blocked_reason: null
+resolution: Upgraded wgpu to 29.0.3 off the webgl-primary path onto a modern WebGPU-first line; the WASM/Vite baseline passes and browser logs show the BrowserWebGpu backend; verified in EV-0003.
+---
 
 # WI-RENDER-0002: Upgrade to Modern WebGPU-First `wgpu`
 

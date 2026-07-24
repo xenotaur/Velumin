@@ -1,9 +1,15 @@
 ---
 id: WI-BOOTSTRAP-0001
 title: Bootstrap LRH project control plane
+type: deliverable
 status: resolved
 priority: high
-owner: project maintainers---
+owner: project maintainers
+depends_on: []
+blocked: false
+blocked_reason: null
+resolution: Delivered the initial standard LRH project-control scaffold under project/, grounded in the README, repository structure, and the stated Velumin goal.
+---
 
 # WI-BOOTSTRAP-0001: Bootstrap LRH Project Control Plane
 

@@ -1,10 +1,16 @@
 ---
 id: WI-RENDER-0005
 title: Spike Glow Pipeline After Modern Baseline
+type: investigation
 status: resolved
 priority: medium
 owner: project maintainers
-depends_on: WI-RENDER-0004---
+depends_on:
+  - WI-RENDER-0004
+blocked: false
+blocked_reason: null
+resolution: Implemented and verified a spike offscreen bright pass, blur-like composite pass, and crisp-line overlay; production glow tuning is left as follow-up work; verified in EV-0006.
+---
 
 # WI-RENDER-0005: Spike Glow Pipeline After Modern Baseline
 
