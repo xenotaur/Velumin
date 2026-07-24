@@ -2,14 +2,14 @@
 execution_id: 2026_07_24_11_36_28_RECONCILE_STATUS_DEMOS_REVIEW
 prompt_id: PROMPT(AD_HOC:RECONCILE_STATUS_DEMOS_REVIEW)[2026-07-24T03:49:30-04:00]
 work_item: AD_HOC
-status: in_progress
+status: landed
 rerun_of: 
 pr: https://github.com/xenotaur/Velumin/pull/8
-commit: 
+commit: 9dde46142742060c555bd0a1f84fd06aefdbe759
 created_at: 2026-07-24T11:36:28-04:00
 agent: claude_app
 instruction_source: https://github.com/xenotaur/Velumin/pull/8
-session_transcript: pending
+session_transcript: claude-app:10b17519-5c53-4a2a-be87-5686ece435f9
 ---
 
 # Summary
