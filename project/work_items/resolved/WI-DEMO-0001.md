@@ -32,7 +32,7 @@ resolution: Implemented and merged the deterministic Blasterites tester and live
 - Demo entrypoints: `webgpu_vector_lib/src/lib.rs` (`render_blasterites_tester`, `render_blasterites_tuner`)
 - Browser harness and routing: `webgpu_vector_lib/web/index.html`
 - Demo launch script: `scripts/demos`
-- Verification: `project/evidence/EV-0008.md`
+- Verification: `project/evidence/EV-0008.md` (code inspection), `project/evidence/EV-0009.md` (browser visual-smoke capture)
 
 ## Acceptance Criteria
 - The baseline `/` route still renders the preserved white-line smoke scene.
@@ -42,4 +42,4 @@ resolution: Implemented and merged the deterministic Blasterites tester and live
 - `scripts/demos` builds the WASM package and starts the Vite demo server.
 
 ## Status
-- Done: the tester and tuner demos, query-parameter routing, and `scripts/demos` are implemented and merged across PRs #3-#6; the demo entrypoints and routing are present in the merged renderer and harness. Browser visual smoke evidence for the demo scenes has not yet been separately recorded; see EV-0008 and the DP-0005 follow-up.
+- Done: the tester and tuner demos, query-parameter routing, and `scripts/demos` are implemented and merged across PRs #3-#6; the demo entrypoints and routing are present in the merged renderer and harness. Browser visual-smoke evidence for the demo scenes was subsequently captured in EV-0009 (baseline, tester at deterministic pre-/post-impact frames, and tuner).

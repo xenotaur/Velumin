@@ -19,8 +19,8 @@ owner: project maintainers
 
 ## Priorities
 1. Preserve the WebGPU browser rendering baseline, the `scripts/validate` contract, and the Blasterites demo routes.
-2. Record browser/screenshot visual evidence for the Arcade Balanced target (`/?demo=blasterites`, `/?demo=tuner`) to close the DP-0006 evidence gap.
-3. Decide whether the internal `VectorDisplayPreset` set becomes a selectable public API, then drive DP-0006 to adoption.
+2. Build on the EV-0009 visual-smoke capture with an automatable/committed screenshot check at the deterministic tester frames, so CI can guard renderer regressions.
+3. Decide whether the internal `VectorDisplayPreset` set becomes a selectable public API and capture the non-default presets, then drive DP-0006 to adoption.
 4. Keep adopted design, work items, roadmap, focus, and evidence aligned with what is merged.
 
 ## Non-Goals
@@ -30,7 +30,7 @@ owner: project maintainers
 - Do not begin native desktop implementation until maintainers explicitly select the DP-0002 workstream.
 
 ## Exit Criteria
-- DP-0006 has recorded browser/screenshot evidence that Arcade Balanced meets its acceptance target, and is either adopted or has an explicit remaining-work list.
+- DP-0006 has recorded browser/screenshot evidence that Arcade Balanced meets its acceptance target (met: EV-0009), and is either adopted or has an explicit remaining-work list (the public-preset-API decision, non-default preset capture, and an automatable smoke check remain).
 - DP-0001, DP-0004, and DP-0005 remain represented as adopted, implemented design.
 - The browser demos remain recoverable through `scripts/validate`, `scripts/demos`, and the documented Rust/WASM/Vite baseline.
 - DP-0002 and DP-0003 remain represented as proposed follow-up directions until selected.
