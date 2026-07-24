@@ -22,7 +22,7 @@
 
 ## Current Status Snapshot
 - Health: yellow.
-- Velumin has a visible identity, a working browser/WebGPU baseline, a script-first validation workflow, and merged Blasterites tester and tuner demos, but the Vector CRT renderer visual model is not yet backed by recorded browser evidence, and public API shape and broader architecture boundaries remain incomplete.
+- Velumin has a visible identity, a working browser/WebGPU baseline, a script-first validation workflow, and merged Blasterites tester and tuner demos, and the Vector CRT renderer's default output now has browser visual-smoke evidence (EV-0009) though it is not yet fully adopted; public API shape and broader architecture boundaries remain incomplete.
 
 ## Known Unknowns
 - Exact public API shape for vector drawing.

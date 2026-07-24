@@ -51,7 +51,7 @@
 - DP-0005 was delivered by `WI-DEMO-0001` and verified against the merged code in `project/evidence/EV-0008.md`.
 
 ## Active Design Proposals
-- `DP-0006 Vector CRT Renderer Migration` is the active renderer workstream and is partially implemented (`implementation_status: partial`): the fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, but recorded browser visual evidence is still required before adoption.
+- `DP-0006 Vector CRT Renderer Migration` is the active renderer workstream and is partially implemented (`implementation_status: partial`): the fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, and browser visual-smoke evidence for the default target is recorded (EV-0009); adopting it is a maintainer decision.
 - `DP-0002 Cross-Platform Vector Renderer Architecture` is the next architecture horizon: platform-neutral core, shared `wgpu` renderer, browser frontend, and later native `winit` frontend.
 - `DP-0003 Extensible 2D Scene and Material Model` proposes a broader scene/material model beyond vector-display emulation.
 

@@ -12,7 +12,7 @@ health: yellow
 - Velumin is an early-stage retro vector-graphics library with an adopted Rust/WASM/WebGPU browser rendering baseline.
 - LRH project-control artifacts make intent, constraints, evidence, and uncertainty explicit.
 - DP-0001, DP-0004, and DP-0005 are adopted and implemented. DP-0005 shipped the deterministic Blasterites tester and live tuner browser demos (merged across PRs #3-#6).
-- DP-0006 (Vector CRT renderer migration) is partially implemented and is the active renderer workstream: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, but the visual model is not yet backed by recorded browser evidence.
+- DP-0006 (Vector CRT renderer migration) is partially implemented and is the active renderer workstream: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, and the default output's browser visual-smoke evidence is now recorded (EV-0009); adopting DP-0006 is a maintainer decision.
 - DP-0002 and DP-0003 remain proposed follow-up design directions.
 
 ## Evidence Basis
@@ -29,11 +29,11 @@ health: yellow
 
 ## Active Priorities
 - Preserve the adopted DP-0001 baseline, DP-0004 validation workflow, and DP-0005 demos.
-- Advance DP-0006 Vector CRT rendering: record browser/screenshot visual evidence for the Arcade Balanced target and decide whether the internal preset set becomes a public API.
+- Advance DP-0006 Vector CRT rendering: its default output now has browser visual-smoke evidence (EV-0009); the maintainer adoption decision and optional follow-ups (public-preset-API question, non-default preset capture, automatable check) remain.
 - Keep design proposal lifecycle metadata and directories aligned with what is merged.
 
 ## Risks
-- The Vector CRT visual model (glow falloff, presets) has landed in code but is not yet validated by recorded browser evidence; rendering quality should not be overstated until it is.
+- The Vector CRT visual model (glow falloff, presets) has landed in code and its default output is now validated by browser visual-smoke capture (EV-0009), though not yet by an automated/committed check; the non-default presets are not yet captured and their quality should not be overstated.
 - The `VectorDisplayPreset` set is currently internal (`#[allow(dead_code)]`); treating it as a stable public API would be premature.
 - Browser/WebGPU behavior may vary and should be validated explicitly before claims are made.
 
