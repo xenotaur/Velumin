@@ -34,10 +34,11 @@
 ## Current Implementation Boundary
 - Repository root contains `README.md`, `LICENSE`, and `webgpu_vector_lib/`.
 - `webgpu_vector_lib/Cargo.toml` defines a Rust package named `webgpu_vector_lib` with `cdylib` and `rlib` crate outputs and a modern WebGPU-first `wgpu` dependency path.
-- `webgpu_vector_lib/src/lib.rs` exposes a `WebGPU` type through `wasm-bindgen`, keeps browser setup and capability handling at the web boundary, owns reusable renderer state internally, and renders line/polyline commands as thick triangle geometry.
-- `webgpu_vector_lib/shaders/line.wgsl` supports the crisp vector primitive pass.
-- The current renderer includes a prototype offscreen glow path that composites a glow pass with crisp core geometry.
-- `webgpu_vector_lib/web/index.html` provides a browser canvas harness that imports the generated WASM package, reports startup errors, and calls `render()`.
+- `webgpu_vector_lib/src/lib.rs` exposes a `WebGPU` type through `wasm-bindgen`, keeps browser setup and capability handling at the web boundary, owns reusable renderer state internally, and renders line/polyline commands as thick triangle geometry. It exposes `render()` (baseline), `render_blasterites_tester()`, and `render_blasterites_tuner()`.
+- `webgpu_vector_lib/shaders/` provides the crisp vector primitive pass (`line.wgsl`), offscreen glow and composite passes (`glow.wgsl`, `composite.wgsl`), and a tester-only scanline composite (`tester_composite.wgsl`).
+- The renderer composites additive multi-layer glow with crisp core geometry, applies a fixed 4:3 centered viewport (`RenderViewport::centered_4_3`) so window resizing letterboxes rather than distorts, and carries an internal `VectorDisplayPreset` set (`ArcadeBalanced`, `MonochromeBeam`, `ColorQuadraScan`, `CleanNeon`) — this is partially-landed DP-0006 renderer work.
+- `webgpu_vector_lib/web/index.html` provides a browser canvas harness that imports the generated WASM package, reports startup errors, and routes by query parameter to the baseline (`/`), Blasterites tester (`/?demo=blasterites`), and tuner (`/?demo=tuner`) scenes.
+- `scripts/demos` builds the WASM package and serves the baseline, Blasterites, and tuner routes through Vite.
 
 ## Adopted Design
 - `DP-0001 Modern WebGPU-First Rendering Path` is adopted and implemented as the current browser rendering baseline.
@@ -46,12 +47,13 @@
 - WebGL2 fallback remains optional and deferred unless maintainers explicitly prioritize it later.
 - `DP-0004 Script-First Validation Workflow` is adopted and implemented as the canonical local and CI validation contract.
 - DP-0004 establishes top-level validation scripts, Rust toolchain pinning, a Clippy gate with warnings denied, and a GitHub Actions workflow that calls `scripts/validate`.
+- `DP-0005 Blasterites Tester Demo and Visual Smoke` is adopted and implemented as the deterministic Blasterites tester and live tuner browser demos.
+- DP-0005 was delivered by `WI-DEMO-0001` and verified against the merged code in `project/evidence/EV-0008.md`.
 
 ## Active Design Proposals
+- `DP-0006 Vector CRT Renderer Migration` is the active renderer workstream and is partially implemented (`implementation_status: partial`): the fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, but recorded browser visual evidence is still required before adoption.
 - `DP-0002 Cross-Platform Vector Renderer Architecture` is the next architecture horizon: platform-neutral core, shared `wgpu` renderer, browser frontend, and later native `winit` frontend.
 - `DP-0003 Extensible 2D Scene and Material Model` proposes a broader scene/material model beyond vector-display emulation.
-- `DP-0005 Blasterites Tester Demo and Visual Smoke` proposes a deterministic browser visual harness for richer vector-renderer inspection.
-- `DP-0006 Vector CRT Renderer Migration` proposes the next focused renderer workstream for viewport stability, production glow tuning, and internal display presets.
 
 ## Future Extensions (Non-binding)
 - A stable public API for vector primitives and scenes.
