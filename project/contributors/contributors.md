@@ -1,8 +1,11 @@
 ---
-id: CONTRIBUTORS-CORE
+id: project maintainers
 title: Contributors
+display_name: Project Maintainers
+type: human
+roles:
+  - admin
 status: active
-owner: project maintainers
 ---
 
 # Contributors

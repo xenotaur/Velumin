@@ -1,10 +1,16 @@
 ---
 id: WI-RENDER-0004
 title: Add Minimal Vector Primitive API and Thick-Line Tessellation
+type: deliverable
 status: resolved
 priority: high
 owner: project maintainers
-depends_on: WI-RENDER-0003---
+depends_on:
+  - WI-RENDER-0003
+blocked: false
+blocked_reason: null
+resolution: Added minimal line/polyline commands, CPU thick-line triangle tessellation uploaded through a vertex buffer, and rendered the smoke scene through the primitive path; verified in EV-0005.
+---
 
 # WI-RENDER-0004: Add Minimal Vector Primitive API and Thick-Line Tessellation
 

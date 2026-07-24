@@ -1,10 +1,16 @@
 ---
 id: WI-RENDER-0003
 title: Introduce Platform Boundary and Capability Handling
+type: deliverable
 status: resolved
 priority: high
 owner: project maintainers
-depends_on: WI-RENDER-0002---
+depends_on:
+  - WI-RENDER-0002
+blocked: false
+blocked_reason: null
+resolution: Separated browser setup from renderer resource ownership, added WebGPU capability error reporting, and made resize reconfigure the surface explicitly; the WASM/Vite baseline passes; verified in EV-0004.
+---
 
 # WI-RENDER-0003: Introduce Platform Boundary and Capability Handling
 
