@@ -10,36 +10,35 @@ health: yellow
 
 ## Summary
 - Velumin is an early-stage retro vector-graphics library with an adopted Rust/WASM/WebGPU browser rendering baseline.
-- LRH project-control artifacts have been bootstrapped to make intent, constraints, evidence, and uncertainty explicit.
-- DP-0001 and DP-0004 are adopted and implemented; DP-0002 and DP-0003 remain proposed follow-up design directions.
+- LRH project-control artifacts make intent, constraints, evidence, and uncertainty explicit.
+- DP-0001, DP-0004, and DP-0005 are adopted and implemented. DP-0005 shipped the deterministic Blasterites tester and live tuner browser demos (merged across PRs #3-#6).
+- DP-0006 (Vector CRT renderer migration) is partially implemented and is the active renderer workstream: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, but the visual model is not yet backed by recorded browser evidence.
+- DP-0002 and DP-0003 remain proposed follow-up design directions.
 
 ## Evidence Basis
-- `README.md` identifies Velumin as a retro vector-graphics library.
-- User-provided context identifies the intended retro game aesthetic.
-- `webgpu_vector_lib/Cargo.toml` shows a Rust crate configured for WASM-compatible library outputs.
-- `webgpu_vector_lib/src/lib.rs` shows WebGPU canvas setup, browser capability handling, renderer state, vector primitive tessellation, a glow pipeline spike, and a render call exposed through `wasm-bindgen`.
-- `webgpu_vector_lib/shaders/line.wgsl` shows the current crisp vector primitive pass.
-- `webgpu_vector_lib/web/index.html` shows a browser canvas harness.
-- `webgpu_vector_lib/web/package.json` defines Rust/WASM/Vite baseline commands.
-- `project/evidence/EV-0002.md` through `project/evidence/EV-0006.md` record DP-0001 implementation verification.
-- `project/evidence/EV-0007.md` records DP-0004 script-first validation and CI verification.
+- `README.md` identifies Velumin as a retro vector-graphics library and documents the `/`, `/?demo=blasterites`, and `/?demo=tuner` demo routes.
+- `webgpu_vector_lib/src/lib.rs` shows WebGPU canvas setup, capability handling, renderer state, vector primitive tessellation, additive multi-layer glow, a centered 4:3 viewport (`RenderViewport::centered_4_3`), an internal `VectorDisplayPreset` set, and the `render`, `render_blasterites_tester`, and `render_blasterites_tuner` entrypoints exposed through `wasm-bindgen`.
+- `webgpu_vector_lib/shaders/` shows the crisp line pass (`line.wgsl`), glow and composite passes (`glow.wgsl`, `composite.wgsl`), and the tester-only scanline composite (`tester_composite.wgsl`).
+- `webgpu_vector_lib/web/index.html` shows the browser canvas harness with query-parameter demo routing and the tuner control panel.
+- `scripts/demos` builds the WASM package and serves the baseline, Blasterites, and tuner routes.
+- `project/evidence/EV-0002.md` through `EV-0006.md` record DP-0001 implementation verification; `EV-0007.md` records DP-0004; `EV-0008.md` records DP-0005/DP-0006 code verification.
 - `scripts/validate` is the canonical local validation command.
 
 ## Current Health
-- Yellow: project identity, browser/WebGPU baseline, and core validation workflow are visible, but public API design, production glow behavior, browser visual validation, and cross-platform architecture are not yet complete.
+- Yellow: project identity, the browser/WebGPU baseline, the validation workflow, and the Blasterites demos are all visible and merged, but the Vector CRT renderer visual model, public vector/scene API design, and cross-platform architecture are not yet complete, and browser visual smoke evidence for the demo scenes has not been separately recorded.
 
 ## Active Priorities
-- Preserve the adopted DP-0001 browser/WebGPU baseline and DP-0004 validation workflow.
-- Select the next workstream: DP-0002 architecture split, DP-0003 scene/material model, visual browser validation, or production glow tuning.
-- Keep design proposal lifecycle metadata and directories aligned.
+- Preserve the adopted DP-0001 baseline, DP-0004 validation workflow, and DP-0005 demos.
+- Advance DP-0006 Vector CRT rendering: record browser/screenshot visual evidence for the Arcade Balanced target and decide whether the internal preset set becomes a public API.
+- Keep design proposal lifecycle metadata and directories aligned with what is merged.
 
 ## Risks
-- Sparse lifecycle guidance for design proposals may lead contributors or agents to infer unsupported API or roadmap commitments.
+- The Vector CRT visual model (glow falloff, presets) has landed in code but is not yet validated by recorded browser evidence; rendering quality should not be overstated until it is.
+- The `VectorDisplayPreset` set is currently internal (`#[allow(dead_code)]`); treating it as a stable public API would be premature.
 - Browser/WebGPU behavior may vary and should be validated explicitly before claims are made.
-- The current glow path is a spike; production rendering quality should not be overstated.
 
 ## Recommended Next Actions
-1. Explicitly select DP-0002, DP-0003, visual browser validation, or production glow tuning as the next workstream.
-2. Define the first public vector primitive or scene API target.
-3. Turn the glow spike into a scoped production work item if maintainers want glow tuning next.
-4. Add browser visual validation on top of the script layer.
+1. Record a browser/screenshot visual smoke run for `/?demo=blasterites` and `/?demo=tuner` at known deterministic moments (completes the DP-0005/DP-0006 evidence gap).
+2. Decide whether DP-0006's internal preset set becomes a selectable public API, then drive DP-0006 to adoption once visual evidence exists.
+3. Select DP-0002 (architecture split) or DP-0003 (scene/material model) as the workstream after the renderer stabilizes.
+4. Define the first public vector primitive or scene API target.

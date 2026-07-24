@@ -2,6 +2,7 @@
 id: DP-0006
 title: Vector CRT Renderer Migration
 status: proposed
+implementation_status: partial
 owner: project maintainers
 created: 2026-05-09
 scope: vector renderer, glow, viewport, display presets
@@ -20,6 +21,11 @@ related:
 Migrate Velumin from the current widened-line glow spike to an internal-first Vector CRT display renderer tuned against the Blasterites tester. Preserve existing public WASM entrypoints while adding a fixed 4:3 logical viewport, real light falloff, additive glow compositing, and a small set of named classic-inspired display presets.
 
 The first acceptance target is Arcade Balanced: crisp bright vector cores with soft diffuse bloom on a black field, no window-resize distortion, and no square or blocky glow artifacts.
+
+## Implementation Status (2026-07-24)
+Partially implemented and merged alongside the DP-0005 demos. The merged renderer already provides a fixed 4:3 centered viewport (`RenderViewport::centered_4_3`, applied to both the glow and surface passes, with a unit test), multi-layer additive glow compositing, and an internal `VectorDisplayPreset` set including the `ArcadeBalanced` tuning target. Public WASM entrypoints from DP-0001 remain stable. See `project/evidence/EV-0008.md`.
+
+Remaining before this proposal can be adopted as implemented: recorded browser/screenshot visual evidence that Arcade Balanced meets its acceptance target, and a decision on whether the internal preset set becomes a selectable public API. This proposal stays `proposed` until that evidence exists; it is the active renderer workstream.
 
 ## Context
 Velumin's current renderer has the right foundation for classic vector-display graphics: WebGPU rendering, CPU-generated thick vector primitives, an offscreen glow target, and a deterministic Blasterites tester scene. Recent visual inspection shows three important gaps:

@@ -1,9 +1,15 @@
 ---
 id: DP-0005
 title: Blasterites Tester Demo and Visual Smoke
-status: proposed
+status: adopted
 owner: project maintainers
 created: 2026-05-08
+adopted: 2026-07-24
+implementation_status: implemented
+implemented_by:
+  - WI-DEMO-0001
+evidence:
+  - EV-0008
 scope: browser example, vector effects validation, visual smoke
 depends_on:
   - DP-0001
@@ -11,6 +17,7 @@ depends_on:
 related:
   - DP-0002
   - DP-0003
+  - DP-0006
 ---
 
 # Blasterites Tester Demo and Visual Smoke
