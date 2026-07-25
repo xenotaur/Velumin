@@ -2,7 +2,7 @@
 id: WI-SMOKE-0001
 title: Automatable Screenshot Smoke Check for Demo Scenes
 type: deliverable
-status: proposed
+status: resolved
 priority: medium
 owner: project maintainers
 depends_on:
@@ -12,7 +12,7 @@ related_design:
   - project/design/proposals/adopted/DP-0005-blasterites-tester-demo-and-visual-smoke.md
 blocked: false
 blocked_reason: null
-resolution: null
+resolution: Implemented and merged in PR #11 (commit 9c0f1ba) — freeze-frame harness mode, a GPU-free Rust determinism guard, and scripts/smoke (Playwright + tolerant reference comparison) that captures the deterministic tester frames at 4:3/wide/tall and skips cleanly on GPU-less environments.
 ---
 
 # WI-SMOKE-0001: Automatable Screenshot Smoke Check for Demo Scenes
