@@ -9,7 +9,7 @@ depends_on:
   - WI-RENDER-0005
 related_design:
   - project/design/proposals/adopted/DP-0005-blasterites-tester-demo-and-visual-smoke.md
-  - project/design/proposals/proposed/DP-0006-vector-crt-renderer-migration.md
+  - project/design/proposals/adopted/DP-0006-vector-crt-renderer-migration.md
 blocked: false
 blocked_reason: null
 resolution: Implemented and merged the deterministic Blasterites tester and live tuner browser demos (PRs #3-#6); verified against the merged renderer code in EV-0008.
@@ -28,7 +28,7 @@ resolution: Implemented and merged the deterministic Blasterites tester and live
 
 ## Evidence
 - DP-0005: `project/design/proposals/adopted/DP-0005-blasterites-tester-demo-and-visual-smoke.md`
-- DP-0006: `project/design/proposals/proposed/DP-0006-vector-crt-renderer-migration.md`
+- DP-0006: `project/design/proposals/adopted/DP-0006-vector-crt-renderer-migration.md`
 - Demo entrypoints: `webgpu_vector_lib/src/lib.rs` (`render_blasterites_tester`, `render_blasterites_tuner`)
 - Browser harness and routing: `webgpu_vector_lib/web/index.html`
 - Demo launch script: `scripts/demos`

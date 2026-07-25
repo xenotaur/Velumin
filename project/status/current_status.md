@@ -11,8 +11,8 @@ health: yellow
 ## Summary
 - Velumin is an early-stage retro vector-graphics library with an adopted Rust/WASM/WebGPU browser rendering baseline.
 - LRH project-control artifacts make intent, constraints, evidence, and uncertainty explicit.
-- DP-0001, DP-0004, and DP-0005 are adopted and implemented. DP-0005 shipped the deterministic Blasterites tester and live tuner browser demos (merged across PRs #3-#6).
-- DP-0006 (Vector CRT renderer migration) is partially implemented and is the active renderer workstream: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, and the default output's browser visual-smoke evidence is now recorded (EV-0009); adopting DP-0006 is a maintainer decision.
+- DP-0001, DP-0004, DP-0005, and DP-0006 are adopted. DP-0005 shipped the deterministic Blasterites tester and live tuner browser demos (merged across PRs #3-#6).
+- DP-0006 (Vector CRT renderer migration) was adopted on 2026-07-24 and is partially implemented: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, validated by code inspection (EV-0008) and browser visual-smoke capture (EV-0009). Remaining follow-ups are tracked (WI-SMOKE-0001, non-default preset capture, public-preset-API decision), not blocking.
 - DP-0002 and DP-0003 remain proposed follow-up design directions.
 
 ## Evidence Basis
@@ -25,11 +25,11 @@ health: yellow
 - `scripts/validate` is the canonical local validation command; `scripts/demos` serves the browser demos.
 
 ## Current Health
-- Yellow: project identity, the browser/WebGPU baseline, the validation workflow, the Blasterites demos, and now a browser visual-smoke capture of the demo scenes (EV-0009) are all visible and merged, but the Vector CRT renderer is only partially adopted (internal presets, public API undecided), and public vector/scene API design and cross-platform architecture are not yet complete.
+- Yellow: project identity, the browser/WebGPU baseline, the validation workflow, the Blasterites demos, and the adopted Vector CRT renderer (DP-0006, with visual-smoke evidence EV-0009) are all visible and merged, but DP-0006 is only partially implemented (internal presets, public API undecided, no automated smoke check yet), and public vector/scene API design and cross-platform architecture are not yet complete.
 
 ## Active Priorities
-- Preserve the adopted DP-0001 baseline, DP-0004 validation workflow, and DP-0005 demos.
-- Advance DP-0006 Vector CRT rendering: its default output now has browser visual-smoke evidence (EV-0009); the maintainer adoption decision and optional follow-ups (public-preset-API question, non-default preset capture, automatable check) remain.
+- Preserve the adopted DP-0001 baseline, DP-0004 validation workflow, DP-0005 demos, and DP-0006 renderer.
+- Advance the adopted DP-0006 follow-ups: land the automatable smoke check (WI-SMOKE-0001), capture the non-default presets, and decide whether the internal preset set becomes a public API.
 - Keep design proposal lifecycle metadata and directories aligned with what is merged.
 
 ## Risks
@@ -38,7 +38,7 @@ health: yellow
 - Browser/WebGPU behavior may vary and should be validated explicitly before claims are made.
 
 ## Recommended Next Actions
-1. Add an automatable/committed screenshot smoke check at the deterministic tester frames (EV-0009 captured them manually; a committed check would let CI guard regressions).
-2. Decide whether DP-0006's internal preset set becomes a selectable public API, and visually capture the non-default presets, then drive DP-0006 to adoption.
-3. Select DP-0002 (architecture split) or DP-0003 (scene/material model) as the workstream after the renderer stabilizes.
+1. Land `WI-SMOKE-0001`: an automatable/committed screenshot smoke check at the deterministic tester frames (EV-0009 captured them manually; a committed check would let CI guard regressions).
+2. Decide whether DP-0006's internal preset set becomes a selectable public API, and visually capture the non-default presets.
+3. Select DP-0002 (architecture split) or DP-0003 (scene/material model) as the next workstream.
 4. Define the first public vector primitive or scene API target.

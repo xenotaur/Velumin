@@ -10,8 +10,8 @@
 
 ## Goals and Direction
 - Goal: create Velumin as a reusable retro vector-graphics library for game developers.
-- Near-term focus: advance the DP-0006 Vector CRT renderer toward adoption while keeping the adopted DP-0001 baseline, DP-0004 validation workflow, and DP-0005 Blasterites demos stable.
-- The immediate next step is a maintainer decision on adopting DP-0006, whose default output now has recorded browser visual-smoke evidence (EV-0009); later directions are DP-0002 architecture splitting and DP-0003 scene/material modeling.
+- Near-term focus: land the DP-0006 renderer follow-ups now that the direction is adopted, while keeping the adopted DP-0001 baseline, DP-0004 validation workflow, and DP-0005 Blasterites demos stable.
+- The immediate next step is `WI-SMOKE-0001`, an automatable screenshot smoke check building on the EV-0009 capture; later directions are DP-0002 architecture splitting and DP-0003 scene/material modeling.
 
 ## Design Snapshot
 - Authoritative intent lives in `principles/`, `goal/`, and `roadmap/`.
@@ -22,7 +22,7 @@
 
 ## Current Status Snapshot
 - Health: yellow.
-- Velumin has a visible identity, a working browser/WebGPU baseline, a script-first validation workflow, and merged Blasterites tester and tuner demos, and the Vector CRT renderer's default output now has browser visual-smoke evidence (EV-0009) though it is not yet fully adopted; public API shape and broader architecture boundaries remain incomplete.
+- Velumin has a visible identity, a working browser/WebGPU baseline, a script-first validation workflow, merged Blasterites tester and tuner demos, and an adopted Vector CRT renderer (DP-0006) whose default output is validated by browser visual-smoke evidence (EV-0009); DP-0006 is only partially implemented, and public API shape and broader architecture boundaries remain incomplete.
 
 ## Known Unknowns
 - Exact public API shape for vector drawing.

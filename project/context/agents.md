@@ -24,12 +24,12 @@
 - Repository identity is Velumin.
 - Current implementation evidence points to Rust, WASM, `wasm-bindgen`, `wgpu`, WGSL shaders, and a Vite browser harness with demo routing.
 - Current rendering signal is the adopted DP-0001 browser/WebGPU baseline plus the adopted DP-0005 Blasterites tester and tuner demos: thick vector primitives on a black canvas with capability handling, additive multi-layer glow, and a fixed 4:3 viewport.
-- DP-0006 (Vector CRT renderer) is the active, partially-implemented renderer workstream; its default output's browser visual-smoke evidence is now recorded (EV-0009), and adopting it is a maintainer decision.
+- DP-0006 (Vector CRT renderer) is adopted (2026-07-24) and partially implemented; its default output is validated by code inspection (EV-0008) and browser visual-smoke capture (EV-0009), with follow-ups tracked in WI-SMOKE-0001.
 - Current validation signal is the adopted DP-0004 script-first workflow: `scripts/validate` is the canonical local validation command and GitHub Actions calls it.
 
 ## Confidence / Uncertainty Notes
 - High confidence: project identity, broad retro vector-graphics goal, current Rust/WASM/WebGPU implementation signals, and the merged Blasterites demos.
-- Medium confidence: the DP-0006 Vector CRT renderer visual model, whose default output is now backed by browser visual-smoke evidence (EV-0009) though not yet by an automated check.
+- Medium confidence: the DP-0006 non-default presets, which remain internal and are not yet visually captured; the adopted default Arcade-Balanced output is validated by EV-0009 but not yet guarded by an automated check.
 - Low confidence: final API model, WebGL2 fallback value, browser support matrix, CI policy, and release packaging.
 
 ## Non-authoritative Notice
