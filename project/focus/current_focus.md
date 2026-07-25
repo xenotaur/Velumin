@@ -19,7 +19,7 @@ owner: project maintainers
 
 ## Priorities
 1. Preserve the WebGPU browser rendering baseline, the `scripts/validate` contract, and the Blasterites demo routes.
-2. Land `WI-SMOKE-0001`: an automatable/committed screenshot check at the deterministic tester frames, so CI can guard renderer regressions.
+2. Maintain and extend the `WI-SMOKE-0001` smoke check (`scripts/smoke`, done — covers baseline/tester/tuner at 4:3/wide/tall), e.g. to the non-default presets once they are selectable.
 3. Resolve `DP-0007` (whether the internal `VectorDisplayPreset` set becomes a selectable public API) and capture the non-default presets.
 4. Keep adopted design, work items, roadmap, focus, and evidence aligned with what is merged.
 

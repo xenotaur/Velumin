@@ -28,7 +28,7 @@ DP-0006 is adopted and partially implemented. The renderer already carries a `Ve
 
 The renderer is initialised to `from_preset(ArcadeBalanced)` at creation, and every scene (`render`, `render_blasterites_tester`) draws through whatever `display_settings` holds. But `VectorDisplayPreset` is `#[allow(dead_code)]`: **no public entrypoint selects a preset by name.** The only public style control today is `render_blasterites_tuner`, which is a testing/tuning harness, not a game-facing API.
 
-DP-0006 deliberately kept presets internal "until the visual model has evidence." That evidence now exists for the default (`EV-0009`, via `WI-SMOKE-0001`), which makes promoting a preset selector to the public API the natural next step — while the other three presets still need visual capture before they are advertised (see Risks).
+DP-0006 deliberately kept presets internal "until the visual model has evidence." That evidence now exists for the default look: `EV-0009` recorded the manual browser visual-smoke capture, and `WI-SMOKE-0001` automated it into `scripts/smoke`. This makes promoting a preset selector to the public API the natural next step — while the other three presets still need visual capture before they are advertised (see Risks).
 
 ## Decision
 Expose a minimal, additive public API for **display style selection**, in both the Rust crate and the WASM/JS surface:
@@ -63,7 +63,7 @@ Keep existing public WASM entrypoints (`render`, and the Blasterites demo/tuner 
 This is a starting point for the decision, not a locked contract.
 
 ### Rust
-- Make `VectorDisplayPreset` public (`pub enum`), deriving `Clone, Copy, Debug, PartialEq, Eq`.
+- Make `VectorDisplayPreset` public (`pub enum`), deriving `Clone, Copy, Debug, PartialEq, Eq`. Mark it `#[non_exhaustive]` so adding presets later is not a breaking change (this is what makes the "adding presets stays backward-compatible" goal true — a plain public enum would let downstream code match all variants exhaustively and break on a new one). The alternative is to declare the four-variant set closed; `#[non_exhaustive]` is recommended.
 - Add a renderer method, e.g. `WebGPU::set_display_preset(&mut self, preset: VectorDisplayPreset)`, and/or a creation option so a preset can be chosen up front.
 - Add a public custom-settings path, e.g. a `DisplaySettings` builder or `WebGPU::set_display_settings(&mut self, settings: DisplaySettings)`, wrapping the existing clamped `from_layers` semantics.
 
