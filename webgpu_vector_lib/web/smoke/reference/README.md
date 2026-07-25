@@ -1,10 +1,22 @@
 # Screenshot smoke reference frames
 
-These committed PNGs are **reference captures for human comparison only** — the
-`scripts/smoke` check asserts *structural* properties of the rendered pixels
-(not all-black, not all-white, geometry present, letterbox margins dark), not
-pixel-perfect equality, because WebGPU output varies by adapter and driver (see
-`WI-SMOKE-0001` non-goals).
+Two kinds of committed reference live here:
+
+- **`*.grid.json`** — coarse (16x12) luminance-grid *signatures*, one per smoke
+  check, that `scripts/smoke` compares each capture against. Each grid is
+  normalized to its brightest cell, so the comparison is about spatial
+  distribution (did geometry move, disappear, or get recolored/replaced?), not
+  absolute brightness — and it uses a generous tolerance so adapter/driver
+  variation does not cause false failures (see `WI-SMOKE-0001` non-goals). This
+  is *not* pixel-perfect image diffing. Re-baseline with
+  `SMOKE_UPDATE_REFS=1 scripts/smoke` on a trusted environment when the demos
+  intentionally change.
+- **`*.png`** — reference captures for **human comparison only**; the check does
+  not diff against them.
+
+The check also asserts structural properties independent of any reference (not
+all-black, not all-white, geometry present, pre- vs post-impact frames differ,
+non-4:3 letterbox margins dark).
 
 Frames here (all the deterministic Blasterites tester at `t=2000ms`, pre-impact):
 

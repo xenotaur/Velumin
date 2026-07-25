@@ -18,14 +18,26 @@
 
 import { chromium } from "playwright";
 import { PNG } from "pngjs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const BASE = (process.env.SMOKE_URL || "http://127.0.0.1:5173").replace(/\/$/, "");
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, "smoke-out");
+const REF = resolve(HERE, "smoke", "reference");
 const READY_TIMEOUT_MS = 15000;
+
+// Spatial reference comparison: a coarse luminance grid, normalized per-frame
+// to its brightest cell so adapter/driver brightness differences do not matter,
+// compared against a committed reference with a generous tolerance. This catches
+// geometry that moves, disappears, or is recolored/replaced (which aggregate
+// luminance stats miss) without requiring pixel-perfect equality across GPUs
+// (WI-SMOKE-0001 non-goals). Set SMOKE_UPDATE_REFS=1 to (re)write references.
+const GRID_COLS = 16;
+const GRID_ROWS = 12;
+const REF_TOLERANCE = 0.16;
+const UPDATE_REFS = /^(1|true|yes)$/i.test(process.env.SMOKE_UPDATE_REFS || "");
 
 const LAUNCH_ARGS = [
   "--enable-unsafe-webgpu",
@@ -99,6 +111,58 @@ function bufferStats(png) {
   };
 }
 
+// A coarse GRID_COLS x GRID_ROWS grid of average luminance, normalized to the
+// brightest cell (so it encodes spatial distribution, not absolute brightness).
+function gridSignature(png) {
+  const { width: w, height: h, data: px } = png;
+  const sum = new Array(GRID_COLS * GRID_ROWS).fill(0);
+  const count = new Array(GRID_COLS * GRID_ROWS).fill(0);
+  for (let y = 0; y < h; y++) {
+    const gy = Math.min(GRID_ROWS - 1, Math.floor((y / h) * GRID_ROWS));
+    for (let x = 0; x < w; x++) {
+      const gx = Math.min(GRID_COLS - 1, Math.floor((x / w) * GRID_COLS));
+      const i = (y * w + x) * 4;
+      const lum = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+      const gi = gy * GRID_COLS + gx;
+      sum[gi] += lum;
+      count[gi] += 1;
+    }
+  }
+  const grid = sum.map((s, i) => (count[i] ? s / count[i] : 0));
+  const max = Math.max(1e-6, ...grid);
+  return grid.map((v) => v / max);
+}
+
+// Compares a frame's grid signature against its committed reference (or writes
+// the reference when SMOKE_UPDATE_REFS is set). Returns { failure } on a
+// tolerance breach, { note } when there is nothing to compare against, or
+// { mad } with the match distance.
+async function referenceCheck(name, grid) {
+  const file = resolve(REF, `${name}.grid.json`);
+  if (UPDATE_REFS) {
+    await mkdir(REF, { recursive: true });
+    const payload = { cols: GRID_COLS, rows: GRID_ROWS, grid: grid.map((v) => Math.round(v * 1000) / 1000) };
+    await writeFile(file, `${JSON.stringify(payload)}\n`);
+    return { note: "updated reference" };
+  }
+  let ref;
+  try {
+    ref = JSON.parse(await readFile(file, "utf8"));
+  } catch {
+    return { note: "no committed reference; spatial comparison skipped" };
+  }
+  if (!Array.isArray(ref.grid) || ref.grid.length !== grid.length) {
+    return { failure: "reference grid shape mismatch (re-baseline with SMOKE_UPDATE_REFS=1)" };
+  }
+  let acc = 0;
+  for (let i = 0; i < grid.length; i++) acc += Math.abs(grid[i] - ref.grid[i]);
+  const mad = acc / grid.length;
+  if (mad > REF_TOLERANCE) {
+    return { failure: `differs from committed reference: grid MAD ${mad.toFixed(3)} > ${REF_TOLERANCE}` };
+  }
+  return { mad };
+}
+
 async function detectWebGpu(browser) {
   const page = await browser.newPage();
   try {
@@ -142,8 +206,12 @@ async function runCheck(browser, check) {
     await mkdir(OUT, { recursive: true });
     const shot = await page.locator("#canvas").screenshot();
     await writeFile(resolve(OUT, `${check.name}.png`), shot);
-    const stats = bufferStats(PNG.sync.read(shot));
-    return { failures: assertCheck(check, stats), stats };
+    const png = PNG.sync.read(shot);
+    const stats = bufferStats(png);
+    const failures = assertCheck(check, stats);
+    const ref = await referenceCheck(check.name, gridSignature(png));
+    if (ref.failure) failures.push(ref.failure);
+    return { failures, stats, note: ref.note, mad: ref.mad };
   } finally {
     await page.close();
   }
@@ -164,8 +232,8 @@ async function main() {
 
     const results = [];
     for (const check of CHECKS) {
-      const { failures, stats } = await runCheck(browser, check);
-      results.push({ check, failures, stats });
+      const { failures, stats, note, mad } = await runCheck(browser, check);
+      results.push({ check, failures, stats, note, mad });
     }
 
     // Cross-frame: the deterministic pre- and post-impact frames must differ.
@@ -181,18 +249,20 @@ async function main() {
     }
 
     let failed = 0;
-    for (const { check, failures, stats } of results) {
+    for (const { check, failures, stats, note, mad } of results) {
       if (failures.length) {
         failed += 1;
         console.log(`FAIL ${check.name}: ${failures.join("; ")}`);
       } else {
-        const s = stats
-          ? ` (maxLum ${stats.maxLum.toFixed(0)}, bright ${(stats.brightFraction * 100).toFixed(2)}%)`
-          : "";
-        console.log(`ok   ${check.name}${s}`);
+        const parts = [];
+        if (stats) parts.push(`maxLum ${stats.maxLum.toFixed(0)}, bright ${(stats.brightFraction * 100).toFixed(2)}%`);
+        if (typeof mad === "number") parts.push(`ref MAD ${mad.toFixed(3)}`);
+        if (note) parts.push(note);
+        console.log(`ok   ${check.name}${parts.length ? ` (${parts.join("; ")})` : ""}`);
       }
     }
-    console.log(`\nScreenshot smoke: ${results.length - failed}/${results.length} checks passed; captures in ${OUT}`);
+    const mode = UPDATE_REFS ? " [reference update]" : "";
+    console.log(`\nScreenshot smoke${mode}: ${results.length - failed}/${results.length} checks passed; captures in ${OUT}`);
     return failed ? 1 : 0;
   } finally {
     await browser.close();
