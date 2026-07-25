@@ -23,6 +23,7 @@ resolution: null
 ## Scope
 - Render the baseline, Blasterites tester (deterministic pre-impact and post-impact frames), and tuner scenes headlessly or through a scripted browser.
 - Capture screenshots at fixed elapsed-time values (the deterministic tester frames, e.g. `t=2000ms` and `t=4000ms` within the 5600ms cycle) rather than sampling the live animation loop.
+- Capture at non-4:3 browser/canvas sizes (wide and tall) in addition to exact 4:3, to exercise the `centered_4_3` letterbox/pillarbox path — the portion of DP-0006's manual-inspection validation that `EV-0009` did not cover.
 - Provide a stable way to freeze a single frame at a chosen time (e.g. a query parameter on the demo harness or a dedicated capture entrypoint) so captures are reproducible.
 - Compare captured frames against committed reference images and fail on meaningful divergence (not all-black, not all-white, geometry present).
 - Wire the check into `scripts/` (and optionally CI) alongside the existing validation lanes.

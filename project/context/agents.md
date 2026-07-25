@@ -29,7 +29,7 @@
 
 ## Confidence / Uncertainty Notes
 - High confidence: project identity, broad retro vector-graphics goal, current Rust/WASM/WebGPU implementation signals, and the merged Blasterites demos.
-- Medium confidence: the DP-0006 non-default presets, which remain internal and are not yet visually captured; the adopted default Arcade-Balanced output is validated by EV-0009 but not yet guarded by an automated check.
+- Medium confidence: the DP-0006 non-4:3 resize/letterbox behavior (unit-tested, not yet visually verified) and the non-default presets (internal, not yet visually captured); the adopted default Arcade-Balanced 4:3 output is validated by EV-0009 but not yet guarded by an automated check.
 - Low confidence: final API model, WebGL2 fallback value, browser support matrix, CI policy, and release packaging.
 
 ## Non-authoritative Notice

@@ -12,7 +12,7 @@ health: yellow
 - Velumin is an early-stage retro vector-graphics library with an adopted Rust/WASM/WebGPU browser rendering baseline.
 - LRH project-control artifacts make intent, constraints, evidence, and uncertainty explicit.
 - DP-0001, DP-0004, DP-0005, and DP-0006 are adopted. DP-0005 shipped the deterministic Blasterites tester and live tuner browser demos (merged across PRs #3-#6).
-- DP-0006 (Vector CRT renderer migration) was adopted on 2026-07-24 and is partially implemented: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, validated by code inspection (EV-0008) and browser visual-smoke capture (EV-0009). Remaining follow-ups are tracked (WI-SMOKE-0001, non-default preset capture, public-preset-API decision), not blocking.
+- DP-0006 (Vector CRT renderer migration) was adopted on 2026-07-24 and is partially implemented: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, validated by code inspection (EV-0008) and browser visual-smoke capture of the default 4:3 output (EV-0009). The non-4:3 resize/letterbox path is not yet visually verified (only unit-tested). Remaining follow-ups are tracked (WI-SMOKE-0001 including wide/tall resize capture, non-default preset capture, public-preset-API decision), not blocking.
 - DP-0002 and DP-0003 remain proposed follow-up design directions.
 
 ## Evidence Basis
@@ -33,7 +33,7 @@ health: yellow
 - Keep design proposal lifecycle metadata and directories aligned with what is merged.
 
 ## Risks
-- The Vector CRT visual model (glow falloff, presets) has landed in code and its default output is now validated by browser visual-smoke capture (EV-0009), though not yet by an automated/committed check; the non-default presets are not yet captured and their quality should not be overstated.
+- The Vector CRT visual model (glow falloff, presets) has landed in code and its default 4:3 output is now validated by browser visual-smoke capture (EV-0009), though not yet by an automated/committed check; the non-4:3 resize/letterbox behavior and the non-default presets are not yet visually captured and should not be overstated.
 - The `VectorDisplayPreset` set is currently internal (`#[allow(dead_code)]`); treating it as a stable public API would be premature.
 - Browser/WebGPU behavior may vary and should be validated explicitly before claims are made.
 
