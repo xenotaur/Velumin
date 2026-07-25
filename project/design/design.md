@@ -49,9 +49,9 @@
 - DP-0004 establishes top-level validation scripts, Rust toolchain pinning, a Clippy gate with warnings denied, and a GitHub Actions workflow that calls `scripts/validate`.
 - `DP-0005 Blasterites Tester Demo and Visual Smoke` is adopted and implemented as the deterministic Blasterites tester and live tuner browser demos.
 - DP-0005 was delivered by `WI-DEMO-0001` and verified against the merged code in `project/evidence/EV-0008.md`.
+- `DP-0006 Vector CRT Renderer Migration` is adopted (2026-07-24) as the project's vector-display rendering direction and is partially implemented (`implementation_status: partial`): the fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, verified by code inspection (`EV-0008`) and browser visual-smoke capture of the default 4:3 output (`EV-0009`). The non-4:3 resize/letterbox path is unit-tested but not yet visually verified. Follow-up work is tracked in `WI-SMOKE-0001` (automatable smoke check, including wide/tall resize capture) and open questions on a public preset API.
 
 ## Active Design Proposals
-- `DP-0006 Vector CRT Renderer Migration` is the active renderer workstream and is partially implemented (`implementation_status: partial`): the fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, and browser visual-smoke evidence for the default target is recorded (EV-0009); adopting it is a maintainer decision.
 - `DP-0002 Cross-Platform Vector Renderer Architecture` is the next architecture horizon: platform-neutral core, shared `wgpu` renderer, browser frontend, and later native `winit` frontend.
 - `DP-0003 Extensible 2D Scene and Material Model` proposes a broader scene/material model beyond vector-display emulation.
 

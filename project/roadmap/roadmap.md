@@ -12,7 +12,7 @@ owner: project maintainers
 - DP-0001 is adopted and implemented as the browser/WebGPU rendering baseline.
 - DP-0004 is adopted and implemented as the core local/CI validation workflow.
 - DP-0005 is adopted and implemented as the Blasterites tester and tuner browser demos.
-- DP-0006 (Vector CRT renderer) is the active renderer workstream and is partially implemented.
+- DP-0006 (Vector CRT renderer) is adopted (2026-07-24) and partially implemented; its remaining follow-ups are tracked, not blocking.
 
 ## Completed Direction: DP-0001 Modern WebGPU-First Rendering
 - The browser white-line smoke demo is preserved as the baseline.
@@ -33,10 +33,10 @@ owner: project maintainers
 - `scripts/demos` builds the WASM package and serves the demo routes.
 - Delivered by `WI-DEMO-0001`; verified against merged code in `EV-0008`.
 
-## Active Horizon: DP-0006 Vector CRT Renderer Migration
-- Migrate the widened-line glow spike to an internal-first Vector CRT display renderer tuned against the Blasterites tester, preserving the existing public WASM entrypoints.
-- Already landed: a fixed 4:3 centered viewport (no window-resize distortion), additive multi-layer glow compositing, and an internal `VectorDisplayPreset` set with `ArcadeBalanced` as the tuning target.
-- Browser visual-smoke evidence for the Arcade Balanced target is recorded (EV-0009); adopting DP-0006 is a maintainer decision, with optional follow-ups (public-preset-API decision, non-default preset capture, automatable smoke check) rather than hard prerequisites.
+## Adopted Direction: DP-0006 Vector CRT Renderer Migration
+- Adopted 2026-07-24 as the project's vector-display rendering direction; `implementation_status: partial`.
+- Landed: a fixed 4:3 centered viewport, additive multi-layer glow compositing, and an internal `VectorDisplayPreset` set with `ArcadeBalanced` as the tuning target — validated by code inspection (`EV-0008`) and browser visual-smoke capture of the default 4:3 output (`EV-0009`). The non-4:3 resize/letterbox path is unit-tested but not yet visually verified.
+- Follow-up work under the adopted direction (tracked, not blocking): an automatable/committed screenshot smoke check including wide/tall resize capture (`WI-SMOKE-0001`), visual capture of the non-default presets, and a decision on whether the internal preset set becomes a selectable public API.
 
 ## Next Horizon: DP-0002 Cross-Platform Renderer Architecture
 - After the Vector CRT renderer stabilizes, split Velumin toward a platform-neutral core, shared `wgpu` renderer, browser frontend, and later native desktop frontend.

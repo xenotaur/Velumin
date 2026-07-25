@@ -1,10 +1,13 @@
 ---
 id: DP-0006
 title: Vector CRT Renderer Migration
-status: proposed
+status: adopted
+adopted: 2026-07-24
 implementation_status: partial
 owner: project maintainers
 created: 2026-05-09
+implemented_by:
+  - WI-DEMO-0001
 evidence:
   - EV-0008
   - EV-0009
@@ -25,10 +28,14 @@ Migrate Velumin from the current widened-line glow spike to an internal-first Ve
 
 The first acceptance target is Arcade Balanced: crisp bright vector cores with soft diffuse bloom on a black field, no window-resize distortion, and no square or blocky glow artifacts.
 
-## Implementation Status (2026-07-24)
+## Adoption and Implementation Status (2026-07-24)
+Adopted as the project's vector-display rendering direction on 2026-07-24, on the strength of the EV-0009 visual-smoke capture. Adoption is `partial`: the core is implemented and validated, and the remaining items below are follow-up work under the adopted direction, not open design questions.
+
 Partially implemented and merged alongside the DP-0005 demos. The merged renderer already provides a fixed 4:3 centered viewport (`RenderViewport::centered_4_3`, applied to both the glow and surface passes, with a unit test), multi-layer additive glow compositing, and an internal `VectorDisplayPreset` set including the `ArcadeBalanced` tuning target. Public WASM entrypoints from DP-0001 remain stable. See `project/evidence/EV-0008.md` (code inspection) and `project/evidence/EV-0009.md` (browser visual-smoke capture).
 
-Browser visual smoke has now been captured (`EV-0009`): the default Arcade-Balanced-style output renders crisp cores with soft additive bloom on a black field and no blocky glow artifacts, at deterministic tester frames. This satisfies the proposal's manual-inspection validation for the Arcade Balanced target. Whether to adopt DP-0006 now is a maintainer decision; this proposal remains `proposed` pending that decision and is the active renderer workstream. Optional follow-ups, not adoption prerequisites, include a decision on whether the internal preset set becomes a selectable public API, visual capture of the non-default presets, and an automatable/committed screenshot smoke check.
+Browser visual smoke has been captured (`EV-0009`): the default Arcade-Balanced-style output renders crisp cores with soft additive bloom on a black field and no blocky glow artifacts, at deterministic tester frames. This satisfies the glow/bloom and exact-4:3 portion of the proposal's manual-inspection validation, and the maintainers adopted the direction on that basis. It does **not** satisfy the resize portion of that validation: EV-0009 used a fixed 800x600 (4:3) canvas and did not exercise the non-4:3 letterbox/pillarbox path, so the "wide, tall, and exact 4:3" resize inspection required by the Validation Direction below remains unverified (covered so far only by the `centered_viewport_preserves_four_by_three_aspect` unit test).
+
+Follow-up work under this adopted direction (tracked separately, not adoption prerequisites): visual verification of the non-4:3 resize/letterbox behavior at wide and tall browser sizes, a decision on whether the internal preset set becomes a selectable public API, visual capture of the non-default presets, and an automatable/committed screenshot smoke check (see `WI-SMOKE-0001`).
 
 ## Context
 Velumin's current renderer has the right foundation for classic vector-display graphics: WebGPU rendering, CPU-generated thick vector primitives, an offscreen glow target, and a deterministic Blasterites tester scene. Recent visual inspection shows three important gaps:
