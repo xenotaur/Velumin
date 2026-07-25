@@ -19,8 +19,8 @@ owner: project maintainers
 
 ## Priorities
 1. Preserve the WebGPU browser rendering baseline, the `scripts/validate` contract, and the Blasterites demo routes.
-2. Land `WI-SMOKE-0001`: an automatable/committed screenshot check at the deterministic tester frames, so CI can guard renderer regressions.
-3. Decide whether the internal `VectorDisplayPreset` set becomes a selectable public API and capture the non-default presets.
+2. Maintain and extend the `WI-SMOKE-0001` smoke check (`scripts/smoke`, done — covers baseline/tester/tuner at 4:3/wide/tall), e.g. to the non-default presets once they are selectable.
+3. Resolve `DP-0007` (whether the internal `VectorDisplayPreset` set becomes a selectable public API) and capture the non-default presets.
 4. Keep adopted design, work items, roadmap, focus, and evidence aligned with what is merged.
 
 ## Non-Goals
@@ -30,7 +30,7 @@ owner: project maintainers
 - Do not begin native desktop implementation until maintainers explicitly select the DP-0002 workstream.
 
 ## Exit Criteria
-- DP-0006 is adopted (2026-07-24) with recorded browser/screenshot evidence that Arcade Balanced meets its acceptance target (EV-0009); its remaining follow-ups are represented as tracked work (`WI-SMOKE-0001`, non-default preset capture, public-preset-API decision), not open design questions.
+- DP-0006 is adopted (2026-07-24) with recorded browser/screenshot evidence that Arcade Balanced meets its acceptance target (EV-0009); its remaining follow-ups are represented as tracked work (`WI-SMOKE-0001` done, non-default preset capture, and the public-preset-API decision proposed as `DP-0007`), not open design questions.
 - DP-0001, DP-0004, DP-0005, and DP-0006 remain represented as adopted design.
 - The browser demos remain recoverable through `scripts/validate`, `scripts/demos`, and the documented Rust/WASM/Vite baseline.
 - DP-0002 and DP-0003 remain represented as proposed follow-up directions until selected.
