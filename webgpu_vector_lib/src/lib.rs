@@ -1749,6 +1749,28 @@ mod tests {
         }
     }
 
+    #[test]
+    fn blasterites_tester_is_deterministic_and_animates() {
+        // Compare a deterministic byte representation of the WHOLE tessellated
+        // tester scene (ship, bullet, asteroid, sparks, and scene assembly), not
+        // just a command count or a single helper — the invariant the browser
+        // screenshot smoke check (WI-SMOKE-0001) relies on to target known frames.
+        let scene_bytes = |time_ms: f32| -> Vec<u8> {
+            let vertices = tessellate_commands(&blasterites_tester_scene(time_ms));
+            bytemuck::cast_slice::<Vertex, u8>(&vertices).to_vec()
+        };
+
+        // Deterministic: the same elapsed time yields byte-identical geometry.
+        let pre = scene_bytes(2000.0);
+        assert!(!pre.is_empty());
+        assert_eq!(pre, scene_bytes(2000.0));
+
+        // Animates: the deterministic pre-impact (t=2000ms) and post-impact
+        // (t=4000ms) frames differ across the whole scene, so a frozen or
+        // static render is caught.
+        assert_ne!(pre, scene_bytes(4000.0));
+    }
+
     fn line_length(start: Vec2, end: Vec2) -> f32 {
         let dx = end.x - start.x;
         let dy = end.y - start.y;

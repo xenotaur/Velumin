@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Browser screenshot smoke check for the Velumin demos (WI-SMOKE-0001).
+#
+# Builds the WASM package, serves the Vite harness, and drives a scripted
+# headless Chromium (Playwright) over the demo scenes in freeze-frame mode,
+# asserting structural properties of the rendered pixels at deterministic
+# tester frames and at 4:3 / wide / tall viewport sizes.
+#
+# This check requires a WebGPU-capable Chromium. Where no WebGPU adapter is
+# available (e.g. CI runners without a GPU), the underlying script prints a
+# SKIP notice and exits 0 rather than failing. It is therefore NOT part of
+# scripts/validate; run it explicitly on a WebGPU-capable environment.
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WEB_DIR="$ROOT/webgpu_vector_lib/web"
+HOST="${SMOKE_HOST:-127.0.0.1}"
+PORT="${SMOKE_PORT:-5179}"
+export SMOKE_URL="http://$HOST:$PORT"
+
+echo "==> Building WASM package"
+npm run build:wasm --prefix "$WEB_DIR"
+
+if [ ! -d "$WEB_DIR/node_modules/playwright" ]; then
+  echo "Playwright is not installed; run 'npm install' in $WEB_DIR first." >&2
+  exit 1
+fi
+
+echo "==> Starting Vite on $SMOKE_URL"
+npm run dev --prefix "$WEB_DIR" -- --host "$HOST" --port "$PORT" --strictPort >/tmp/velumin-smoke-vite.log 2>&1 &
+VITE_PID=$!
+cleanup() { kill "$VITE_PID" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+
+# Wait for the server to accept connections, and fail clearly if it never does.
+server_up=0
+for _ in $(seq 1 40); do
+  if curl -sf -o /dev/null "$SMOKE_URL/"; then server_up=1; break; fi
+  sleep 0.25
+done
+if [ "$server_up" -ne 1 ]; then
+  echo "Vite did not become reachable at $SMOKE_URL within the timeout." >&2
+  echo "See the server log: /tmp/velumin-smoke-vite.log" >&2
+  exit 1
+fi
+
+echo "==> Running screenshot smoke check"
+node "$WEB_DIR/smoke.mjs"
