@@ -133,6 +133,13 @@
         const tuner = document.getElementById("tuner");
         const params = new URLSearchParams(window.location.search);
         const demo = params.get("demo") || "baseline";
+        // Freeze-frame capture mode for the screenshot smoke check (WI-SMOKE-0001):
+        // `?frame` (optionally `?frame=<ms>` or `?t=<ms>`) renders exactly one
+        // deterministic frame at a fixed elapsed time instead of animating, and
+        // signals readiness via window.__smokeReady / window.__smokeError so an
+        // external capture script can wait for a stable frame.
+        const frameMode = params.has("frame");
+        const frameTime = Number(params.get("t") ?? (params.get("frame") || "0")) || 0;
         const tunerControls = [...document.querySelectorAll("#tuner input[type='range']")];
         const tunerState = Object.fromEntries(
             tunerControls.map((input) => [input.dataset.setting, Number(input.value)])
@@ -169,24 +176,43 @@
                 } else {
                     gpu.render();
                 }
+                return true;
             } catch (error) {
                 console.error(error);
                 showUnsupported(error instanceof Error ? error.message : String(error));
+                window.__smokeError = error instanceof Error ? error.message : String(error);
+                return false;
             }
         }
 
         async function run() {
             try {
                 await init();
+                if (frameMode) {
+                    // Wait for layout so the canvas has its real client size before
+                    // the renderer samples it; otherwise a pre-layout create() would
+                    // size the surface to 1x1 and render nothing.
+                    await new Promise((resolve) =>
+                        requestAnimationFrame(() => requestAnimationFrame(resolve))
+                    );
+                }
                 const gpu = await WebGPU.create("canvas");
-                if (demo === "tuner") {
+                if (demo === "tuner" && !frameMode) {
                     tuner.dataset.visible = "true";
                     syncTunerOutputs();
                     for (const input of tunerControls) {
                         input.addEventListener("input", syncTunerOutputs);
                     }
                 }
-                if (demo === "blasterites" || demo === "tuner") {
+                if (frameMode) {
+                    // Render a single deterministic frame and signal readiness.
+                    if (demo === "tuner") {
+                        syncTunerOutputs();
+                    }
+                    if (renderOrReport(gpu, frameTime)) {
+                        window.__smokeReady = true;
+                    }
+                } else if (demo === "blasterites" || demo === "tuner") {
                     const animate = (time) => {
                         renderOrReport(gpu, time);
                         requestAnimationFrame(animate);
@@ -200,6 +226,7 @@
             } catch (error) {
                 console.error(error);
                 showUnsupported(error instanceof Error ? error.message : String(error));
+                window.__smokeError = error instanceof Error ? error.message : String(error);
             }
         }
         

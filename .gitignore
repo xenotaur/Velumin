@@ -28,3 +28,6 @@ dist/
 *~
 *.log
 tmp/
+
+# Screenshot smoke output (WI-SMOKE-0001)
+webgpu_vector_lib/web/smoke-out/

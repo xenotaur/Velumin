@@ -40,6 +40,16 @@ Available demo routes:
 
 The Blasterites tester and tuner are renderer validation harnesses, not playable games. The tester is deterministic from elapsed time so future browser or screenshot smoke checks can target known moments in the animation.
 
+Add `?frame` (optionally `?frame=<ms>` or `?t=<ms>`) to any demo route to render a single deterministic frame at a fixed elapsed time instead of animating — this is the freeze-frame mode the screenshot smoke check uses.
+
+## Browser Screenshot Smoke Check
+
+```sh
+scripts/smoke
+```
+
+`scripts/smoke` builds the WASM package, serves the demos, and drives a scripted headless Chromium (Playwright) over the deterministic tester frames at 4:3, wide, and tall viewports, asserting that each scene renders visible vector geometry on a black field and that non-4:3 sizes letterbox rather than distort. It requires a WebGPU-capable Chromium and **skips cleanly on GPU-less environments** (such as CI), so it is not part of `scripts/validate`. Run `npm install` in `webgpu_vector_lib/web/` and `npx playwright install chromium` first. See `scripts/README.md` for details.
+
 ## Canonical Local Validation
 
 Velumin uses a script-first validation workflow. The top-level `scripts/` directory is the shared contract for local development, CI, and agent environments.

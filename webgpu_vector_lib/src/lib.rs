@@ -1749,6 +1749,27 @@ mod tests {
         }
     }
 
+    #[test]
+    fn blasterites_tester_is_deterministic_and_animates() {
+        // Deterministic: the same elapsed time always yields identical geometry.
+        // This is the invariant the browser screenshot smoke check (WI-SMOKE-0001)
+        // relies on to target known frames.
+        assert_eq!(
+            blasterites_ship_outline(2000.0),
+            blasterites_ship_outline(2000.0)
+        );
+        assert_eq!(
+            blasterites_tester_scene(2000.0).len(),
+            blasterites_tester_scene(2000.0).len()
+        );
+        // Animates: the deterministic pre-impact (t=2000ms) and post-impact
+        // (t=4000ms) frames differ, so a frozen or static render is caught.
+        assert_ne!(
+            blasterites_ship_outline(2000.0),
+            blasterites_ship_outline(4000.0)
+        );
+    }
+
     fn line_length(start: Vec2, end: Vec2) -> f32 {
         let dx = end.x - start.x;
         let dy = end.y - start.y;

@@ -9,7 +9,8 @@
     "dev": "vite",
     "baseline": "npm run check:wasm && npm run build:wasm && npm run build",
     "test:visual-smoke": "npm run build:wasm && npm run build",
-    "test": "npm run baseline"
+    "test": "npm run baseline",
+    "smoke": "node smoke.mjs"
   },
   "keywords": [],
   "author": "",
@@ -17,5 +18,9 @@
   "description": "",
   "dependencies": {
     "vite": "^6.2.2"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.0",
+    "pngjs": "^7.0.0"
   }
 }
