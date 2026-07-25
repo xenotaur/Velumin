@@ -2,14 +2,14 @@
 execution_id: 2026_07_25_14_14_58_DP_0007_DISPLAY_PRESET_API_CONFIRM
 prompt_id: PROMPT(AD_HOC:DP_0007_DISPLAY_PRESET_API_CONFIRM)[2026-07-25T14:16:00-04:00]
 work_item: AD_HOC
-status: in_progress
+status: landed
 rerun_of: 
 pr: https://github.com/xenotaur/Velumin/pull/12
-commit: 
+commit: 858907863e04a3733ae85459ef14dc1a267b3648
 created_at: 2026-07-25T14:14:58-04:00
 agent: claude_app
 instruction_source: https://github.com/xenotaur/Velumin/pull/12
-session_transcript: pending
+session_transcript: claude-app:10b17519-5c53-4a2a-be87-5686ece435f9
 ---
 
 # Summary
