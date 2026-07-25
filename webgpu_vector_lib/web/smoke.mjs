@@ -7,9 +7,12 @@
 // vector geometry present, pre-impact vs post-impact frames differ, and the
 // non-4:3 letterbox/pillarbox margins are dark).
 //
-// It does NOT require pixel-perfect equality with committed reference frames
-// (adapter/driver variation is expected; see WI-SMOKE-0001 non-goals). Committed
-// reference frames under smoke/reference/ are for human comparison only.
+// It also compares each capture against a committed reference signature
+// (a normalized coarse luminance grid) with a generous tolerance, to catch
+// geometry that moves, disappears, or is recolored. It does NOT require
+// pixel-perfect equality (adapter/driver variation is expected; see
+// WI-SMOKE-0001 non-goals). The reference signatures live under
+// smoke/reference/*.grid.json; the *.png files there are for human comparison.
 //
 // WebGPU requirement: this check needs a WebGPU-capable Chromium. When no
 // WebGPU adapter is available (e.g. GitHub Actions runners without a GPU, or
