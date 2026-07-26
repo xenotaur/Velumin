@@ -39,6 +39,38 @@
     gap: 0.7rem;
   }
 
+  #preset-picker {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    display: none;
+    padding: 0.6rem 0.75rem;
+    color: rgb(225, 242, 255);
+    background: rgba(4, 8, 12, 0.78);
+    border: 1px solid rgba(120, 210, 255, 0.28);
+    border-radius: 6px;
+    font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    backdrop-filter: blur(8px);
+  }
+
+  #preset-picker[data-visible="true"] {
+    display: block;
+  }
+
+  #preset-picker label {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  #preset-picker select {
+    font: inherit;
+    color: inherit;
+    background: rgba(4, 8, 12, 0.6);
+    border: 1px solid rgba(120, 210, 255, 0.35);
+    border-radius: 4px;
+    padding: 0.25rem;
+  }
+
   .tuner-row {
     display: grid;
     grid-template-columns: 6.5rem 1fr 3rem;
@@ -125,9 +157,20 @@
             <output for="far-light">0.03</output>
         </label>
     </section>
+    <section id="preset-picker" aria-label="Display preset">
+        <label>
+            <span>display preset</span>
+            <select id="preset-select">
+                <option value="arcade-balanced">Arcade Balanced</option>
+                <option value="monochrome-beam">Monochrome Beam</option>
+                <option value="color-quadra-scan">Color Quadra Scan</option>
+                <option value="clean-neon">Clean Neon</option>
+            </select>
+        </label>
+    </section>
     <div id="status" role="status" aria-live="polite"></div>
     <script type="module">
-        import init, { WebGPU } from "@pkg/webgpu_vector_lib.js";
+        import init, { WebGPU, VectorDisplayPreset } from "@pkg/webgpu_vector_lib.js";
 
         const status = document.getElementById("status");
         const tuner = document.getElementById("tuner");
@@ -140,6 +183,18 @@
         // external capture script can wait for a stable frame.
         const frameMode = params.has("frame");
         const frameTime = Number(params.get("t") ?? (params.get("frame") || "0")) || 0;
+        // Public display presets (DP-0007): map the string key used in the UI and
+        // the `?preset=<name>` query param to the wasm-bindgen VectorDisplayPreset enum.
+        const presetPicker = document.getElementById("preset-picker");
+        const presetSelect = document.getElementById("preset-select");
+        const PRESETS = {
+            "arcade-balanced": VectorDisplayPreset.ArcadeBalanced,
+            "monochrome-beam": VectorDisplayPreset.MonochromeBeam,
+            "color-quadra-scan": VectorDisplayPreset.ColorQuadraScan,
+            "clean-neon": VectorDisplayPreset.CleanNeon,
+        };
+        const presetParam = params.get("preset");
+        const initialPreset = PRESETS[presetParam] ?? VectorDisplayPreset.ArcadeBalanced;
         const tunerControls = [...document.querySelectorAll("#tuner input[type='range']")];
         const tunerState = Object.fromEntries(
             tunerControls.map((input) => [input.dataset.setting, Number(input.value)])
@@ -196,13 +251,28 @@
                         requestAnimationFrame(() => requestAnimationFrame(resolve))
                     );
                 }
-                const gpu = await WebGPU.create("canvas");
+                const gpu = await WebGPU.createWithPreset("canvas", initialPreset);
                 if (demo === "tuner" && !frameMode) {
                     tuner.dataset.visible = "true";
                     syncTunerOutputs();
                     for (const input of tunerControls) {
                         input.addEventListener("input", syncTunerOutputs);
                     }
+                }
+                // The preset picker applies to demos that render through the shared
+                // display settings (baseline, blasterites). The tuner demo overrides
+                // display settings every frame, so a preset choice would not stick.
+                if (!frameMode && demo !== "tuner") {
+                    presetPicker.dataset.visible = "true";
+                    if (presetParam && PRESETS[presetParam]) {
+                        presetSelect.value = presetParam;
+                    }
+                    presetSelect.addEventListener("change", () => {
+                        gpu.setDisplayPreset(PRESETS[presetSelect.value]);
+                        if (demo === "baseline") {
+                            renderOrReport(gpu);
+                        }
+                    });
                 }
                 if (frameMode) {
                     // Render a single deterministic frame and signal readiness.
