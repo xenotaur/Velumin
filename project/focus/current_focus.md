@@ -25,12 +25,12 @@ owner: project maintainers
 
 ## Non-Goals
 - Do not implement full games as part of the rendering work; the Blasterites tester is a validation harness, not a playable game.
-- Do not advertise the non-default presets (`MonochromeBeam`/`ColorQuadraScan`/`CleanNeon`) as supported before they have recorded visual evidence, even though the public preset API is now adopted (`DP-0007`) and being implemented (`WI-PRESET-0001`).
+- Do not advertise the non-default presets (`MonochromeBeam`/`ColorQuadraScan`/`CleanNeon`) as supported before they have recorded visual evidence, even though the public preset API is now adopted (`DP-0007`); its implementation is tracked but not yet started (`WI-PRESET-0001`, proposed).
 - Do not make WebGL2 fallback a milestone unless maintainers explicitly prioritize it later.
 - Do not begin native desktop implementation until maintainers explicitly select the DP-0002 workstream.
 
 ## Exit Criteria
-- DP-0006 is adopted (2026-07-24) with recorded browser/screenshot evidence that Arcade Balanced meets its acceptance target (EV-0009); its remaining follow-ups are represented as tracked work (`WI-SMOKE-0001` done; the public preset API decided by the adopted `DP-0007` and implemented via `WI-PRESET-0001`, which also captures the non-default presets), not open design questions.
+- DP-0006 is adopted (2026-07-24) with recorded browser/screenshot evidence that Arcade Balanced meets its acceptance target (EV-0009); its remaining follow-ups are represented as tracked work (`WI-SMOKE-0001` done; the public preset API decided by the adopted `DP-0007`, to be implemented by `WI-PRESET-0001` (proposed, not yet started), which also captures the non-default presets), not open design questions.
 - DP-0001, DP-0004, DP-0005, and DP-0006 remain represented as adopted design.
 - The browser demos remain recoverable through `scripts/validate`, `scripts/demos`, and the documented Rust/WASM/Vite baseline.
 - DP-0002 and DP-0003 remain represented as proposed follow-up directions until selected.

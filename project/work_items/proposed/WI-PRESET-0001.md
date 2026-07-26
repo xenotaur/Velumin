@@ -22,7 +22,7 @@ resolution: null
 
 ## Scope
 - Make `VectorDisplayPreset` a public `pub enum`, marked `#[non_exhaustive]`, deriving `Clone, Copy, Debug, PartialEq, Eq`; remove its `#[allow(dead_code)]`.
-- Add a runtime selector `WebGPU::set_display_preset(preset)` and a creation-time default (`ArcadeBalanced`), keeping the existing `render` / demo entrypoints stable.
+- Add a runtime selector `WebGPU::set_display_preset(preset)` and a creation-time option that lets callers choose any preset up front (e.g. a `create_with_preset(canvas, preset)` factory or an optional preset argument), while the existing `create` entrypoint stays stable and defaults to `ArcadeBalanced`. Keep the `render` / demo entrypoints stable.
 - Export `VectorDisplayPreset` and the setter through `wasm-bindgen` (enum export, not string keys).
 - Add a browser demo route or example that switches presets at runtime.
 - Extend the `WI-SMOKE-0001` smoke check (`scripts/smoke`) to capture the non-default presets, so each advertised look has visual evidence.
@@ -35,7 +35,7 @@ resolution: null
 - Do not change the 4:3 viewport/letterbox policy; a preset covers glow/stroke style only.
 
 ## Required Changes
-- `webgpu_vector_lib/src/lib.rs`: make `VectorDisplayPreset` public + `#[non_exhaustive]`; add `set_display_preset` and a creation-time preset default; wire the selected preset into `display_settings`.
+- `webgpu_vector_lib/src/lib.rs`: make `VectorDisplayPreset` public + `#[non_exhaustive]`; add `set_display_preset` (runtime) and a creation-time preset option — a factory or optional argument that selects any preset, with the existing `create` defaulting to `ArcadeBalanced`; wire the selected preset into `display_settings`.
 - `webgpu_vector_lib/src/lib.rs` (wasm-bindgen exports): export the enum and setter for JS.
 - `webgpu_vector_lib/web/index.html`: a demo route/control that switches presets at runtime.
 - `webgpu_vector_lib/web/smoke.mjs` + `scripts/smoke`: capture each non-default preset; commit reference signatures for them.
