@@ -2,7 +2,7 @@
 id: WI-PRESET-0001
 title: Public Display Preset API
 type: deliverable
-status: proposed
+status: resolved
 priority: medium
 owner: project maintainers
 depends_on:
@@ -12,7 +12,7 @@ related_design:
   - project/design/proposals/adopted/DP-0006-vector-crt-renderer-migration.md
 blocked: false
 blocked_reason: null
-resolution: null
+resolution: Implemented and merged in PR #14 (commit d4e5f9b) — public #[non_exhaustive] VectorDisplayPreset (wasm-bindgen enum) with create_with_preset and set_display_preset selectors, a demo preset dropdown + ?preset= param, the non-default presets captured in scripts/smoke with a cross-preset distinctness assertion, and README docs. The deferred public custom display-settings API is out of v1 scope.
 ---
 
 # WI-PRESET-0001: Public Display Preset API
