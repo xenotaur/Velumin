@@ -12,7 +12,10 @@ Two kinds of committed reference live here:
   `SMOKE_UPDATE_REFS=1 scripts/smoke` on a trusted environment when the demos
   intentionally change.
 - **`*.png`** — reference captures for **human comparison only**; the check does
-  not diff against them.
+  not diff against them. `preset-*.png` show the three non-default DP-0007
+  display presets (`MonochromeBeam`, `ColorQuadraScan`, `CleanNeon`) on the
+  deterministic pre-impact tester frame, and `blasterites-{wide,tall}.png` show
+  the non-4:3 letterbox/pillarbox behavior.
 
 The check also asserts structural properties independent of any reference (not
 all-black, not all-white, geometry present, pre- vs post-impact frames differ,

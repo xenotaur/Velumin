@@ -57,6 +57,11 @@ const CHECKS = [
   { name: "blasterites-wide", url: `${BASE}/?demo=blasterites&frame&t=2000`, viewport: { width: 1280, height: 480 }, aspect: "wide" },
   { name: "blasterites-tall", url: `${BASE}/?demo=blasterites&frame&t=2000`, viewport: { width: 600, height: 900 }, aspect: "tall" },
   { name: "tuner-4x3", url: `${BASE}/?demo=tuner&frame&t=2000`, viewport: { width: 1024, height: 768 }, aspect: "4:3" },
+  // Non-default display presets (DP-0007 / WI-PRESET-0001), captured on the
+  // deterministic pre-impact tester frame so each advertised look has evidence.
+  { name: "preset-monochrome-beam", url: `${BASE}/?demo=blasterites&frame&t=2000&preset=monochrome-beam`, viewport: { width: 1024, height: 768 }, aspect: "4:3" },
+  { name: "preset-color-quadra-scan", url: `${BASE}/?demo=blasterites&frame&t=2000&preset=color-quadra-scan`, viewport: { width: 1024, height: 768 }, aspect: "4:3" },
+  { name: "preset-clean-neon", url: `${BASE}/?demo=blasterites&frame&t=2000&preset=clean-neon`, viewport: { width: 1024, height: 768 }, aspect: "4:3" },
 ];
 
 // Computes luminance stats over a decoded RGBA screenshot, plus the darkness
@@ -71,13 +76,27 @@ function bufferStats(png) {
   let maxLum = 0;
   let sumLum = 0;
   let bright = 0;
+  let litR = 0;
+  let litG = 0;
+  let litB = 0;
   for (let i = 0; i < px.length; i += 4) {
-    const lum = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+    const r = px[i];
+    const g = px[i + 1];
+    const b = px[i + 2];
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     sumLum += lum;
     if (lum > maxLum) maxLum = lum;
-    if (lum > 40) bright += 1;
+    if (lum > 40) {
+      bright += 1;
+      litR += r;
+      litG += g;
+      litB += b;
+    }
   }
   const total = w * h;
+  // Mean colour of the lit (glow + core) pixels — sensitive to the per-preset
+  // glow intensity and hue that the normalized spatial grid cannot see.
+  const litColor = bright ? [litR / bright, litG / bright, litB / bright] : [0, 0, 0];
 
   // Centered 4:3 target region; anything outside is expected to be black.
   const target = 4 / 3;
@@ -110,8 +129,25 @@ function bufferStats(png) {
     maxLum,
     avgLum: sumLum / total,
     brightFraction: bright / total,
+    litColor,
     marginBrightFraction: marginPixels ? marginBright / marginPixels : 0,
   };
+}
+
+// A per-preset "look" distance between two captures, combining relative
+// lit-area (glow spread/intensity) and mean lit colour. Both frames come from
+// the same run/adapter, so this isolates the effect of the display preset. A
+// value near 0 means the two frames look the same (e.g. a broken preset
+// selector rendering the default everywhere).
+function lookDistance(a, b) {
+  const denom = Math.max(a.brightFraction, b.brightFraction, 1e-6);
+  const brightnessDelta = Math.abs(a.brightFraction - b.brightFraction) / denom;
+  const colorDelta =
+    (Math.abs(a.litColor[0] - b.litColor[0]) +
+      Math.abs(a.litColor[1] - b.litColor[1]) +
+      Math.abs(a.litColor[2] - b.litColor[2])) /
+    (3 * 255);
+  return brightnessDelta + colorDelta;
 }
 
 // A coarse GRID_COLS x GRID_ROWS grid of average luminance, normalized to the
@@ -248,6 +284,28 @@ async function main() {
         pre.failures.push(
           `frame did not change across impact: brightFraction delta ${delta.toExponential(2)} (static render?)`,
         );
+      }
+    }
+
+    // Preset distinctness: the ArcadeBalanced default frame and each non-default
+    // preset frame (same scene, same t) must render a visibly different look.
+    // This is what actually validates preset SELECTION — the per-frame grid
+    // reference cannot, since the presets share geometry and it normalizes away
+    // brightness. If the selector regressed so every route renders one preset,
+    // these frames would collapse together and fail here.
+    const PRESET_LOOK_MIN = 0.08;
+    const presetFrames = [
+      { label: "arcade-balanced (default)", result: pre },
+      ...results.filter((r) => r.check.name.startsWith("preset-")).map((r) => ({ label: r.check.name, result: r })),
+    ].filter((f) => f.result?.stats);
+    for (let a = 0; a < presetFrames.length; a++) {
+      for (let b = a + 1; b < presetFrames.length; b++) {
+        const dist = lookDistance(presetFrames[a].result.stats, presetFrames[b].result.stats);
+        if (dist < PRESET_LOOK_MIN) {
+          presetFrames[b].result.failures.push(
+            `preset look not distinct from ${presetFrames[a].label}: distance ${dist.toFixed(3)} < ${PRESET_LOOK_MIN} (preset selection may have regressed)`,
+          );
+        }
       }
     }
 

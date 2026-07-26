@@ -22,6 +22,23 @@ The current browser baseline is a Rust/WASM/Vite demo that renders a white line 
 
 The crate currently requires Rust 1.87 or newer. The repository pins the local toolchain to Rust 1.87.0 through `rust-toolchain.toml` and uses `wasm32-unknown-unknown` for the browser WASM build.
 
+## Display Presets
+
+Velumin exposes a small public API for choosing a classic-inspired display look (DP-0007). Pick a named `VectorDisplayPreset` — `ArcadeBalanced` (default), `MonochromeBeam`, `ColorQuadraScan`, or `CleanNeon` — at renderer creation or at runtime:
+
+```js
+import init, { WebGPU, VectorDisplayPreset } from "@pkg/webgpu_vector_lib.js";
+await init();
+
+// Choose a preset up front (or use WebGPU.create for the ArcadeBalanced default):
+const gpu = await WebGPU.createWithPreset("canvas", VectorDisplayPreset.MonochromeBeam);
+
+// ...or switch at runtime; it applies on the next render call:
+gpu.setDisplayPreset(VectorDisplayPreset.CleanNeon);
+```
+
+The preset **names** are a stable contract and `VectorDisplayPreset` is `#[non_exhaustive]` (presets may be added later). The numeric glow/stroke tuning behind each preset is internal and may be re-tuned. The demos expose a preset dropdown (baseline and Blasterites), and `?preset=<name>` (e.g. `?demo=blasterites&preset=clean-neon`) selects one via query parameter.
+
 ## Browser Demos
 
 Build the WASM package and start the local Vite server:

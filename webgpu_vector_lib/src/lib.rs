@@ -186,9 +186,16 @@ impl VectorDisplaySettings {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-#[allow(dead_code)]
-enum VectorDisplayPreset {
+/// A named, classic-inspired vector-display look.
+///
+/// This is the public v1 display-preset API (DP-0007): the numeric glow/stroke
+/// tuning behind each look is internal and may be re-tuned, but these variant
+/// names are a stable contract. Marked `#[non_exhaustive]` so future presets can
+/// be added without breaking downstream code.
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum VectorDisplayPreset {
     ArcadeBalanced,
     MonochromeBeam,
     ColorQuadraScan,
@@ -332,8 +339,20 @@ struct Renderer {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[cfg(target_arch = "wasm32")]
 impl WebGPU {
+    /// Create a renderer on the given canvas using the default display preset
+    /// (`ArcadeBalanced`). To choose a different look up front, use
+    /// `create_with_preset`; to change it later, use `set_display_preset`.
     #[wasm_bindgen(js_name = create)]
     pub async fn create(canvas_id: &str) -> Result<WebGPU, JsValue> {
+        Self::create_with_preset(canvas_id, VectorDisplayPreset::ArcadeBalanced).await
+    }
+
+    /// Create a renderer on the given canvas with a chosen display preset.
+    #[wasm_bindgen(js_name = createWithPreset)]
+    pub async fn create_with_preset(
+        canvas_id: &str,
+        preset: VectorDisplayPreset,
+    ) -> Result<WebGPU, JsValue> {
         console_error_panic_hook::set_once();
         log("Starting WebGPU setup");
 
@@ -384,9 +403,16 @@ impl WebGPU {
             adapter_info.name, adapter_info.backend
         ));
 
-        let renderer = Renderer::new(surface, &adapter, width, height).await?;
+        let renderer = Renderer::new(surface, &adapter, width, height, preset).await?;
 
         Ok(WebGPU { canvas, renderer })
+    }
+
+    /// Switch the active display preset at runtime. Takes effect on the next
+    /// `render` / `render_blasterites_tester` call.
+    #[wasm_bindgen(js_name = setDisplayPreset)]
+    pub fn set_display_preset(&mut self, preset: VectorDisplayPreset) {
+        self.renderer.display_settings = VectorDisplaySettings::from_preset(preset);
     }
 
     #[wasm_bindgen]
@@ -445,6 +471,7 @@ impl Renderer {
         adapter: &wgpu::Adapter,
         width: u32,
         height: u32,
+        preset: VectorDisplayPreset,
     ) -> Result<Self, JsValue> {
         let capabilities = surface.get_capabilities(adapter);
         let format = capabilities.formats.first().copied().ok_or_else(|| {
@@ -640,9 +667,7 @@ impl Renderer {
             glow_vertex_buffer,
             glow_vertex_capacity: 0,
             glow_vertex_count: 0,
-            display_settings: VectorDisplaySettings::from_preset(
-                VectorDisplayPreset::ArcadeBalanced,
-            ),
+            display_settings: VectorDisplaySettings::from_preset(preset),
         })
     }
 
