@@ -12,7 +12,7 @@ health: yellow
 - Velumin is an early-stage retro vector-graphics library with an adopted Rust/WASM/WebGPU browser rendering baseline.
 - LRH project-control artifacts make intent, constraints, evidence, and uncertainty explicit.
 - DP-0001, DP-0004, DP-0005, and DP-0006 are adopted. DP-0005 shipped the deterministic Blasterites tester and live tuner browser demos (merged across PRs #3-#6).
-- DP-0006 (Vector CRT renderer migration) was adopted on 2026-07-24 and is partially implemented: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, validated by code inspection (EV-0008) and browser visual-smoke capture (EV-0009). The WI-SMOKE-0001 smoke check (`scripts/smoke`) now captures the baseline, tester (pre/post), and tuner at 4:3, wide, and tall, so the non-4:3 letterbox/pillarbox path is covered. Remaining follow-ups (not blocking): capture the non-default presets and decide the public-preset-API question (DP-0007).
+- DP-0006 (Vector CRT renderer migration) was adopted on 2026-07-24 and is partially implemented: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, validated by code inspection (EV-0008) and browser visual-smoke capture (EV-0009). The WI-SMOKE-0001 smoke check (`scripts/smoke`) now captures the baseline, tester (pre/post), and tuner at 4:3, wide, and tall, so the non-4:3 letterbox/pillarbox path is covered. The public-preset-API question is settled by the adopted DP-0007; implementing it (a public `VectorDisplayPreset` selector) and capturing the non-default presets is tracked in WI-PRESET-0001 (not blocking).
 - DP-0002 and DP-0003 remain proposed follow-up design directions.
 
 ## Evidence Basis
@@ -25,11 +25,11 @@ health: yellow
 - `scripts/validate` is the canonical local validation command; `scripts/demos` serves the browser demos.
 
 ## Current Health
-- Yellow: project identity, the browser/WebGPU baseline, the validation workflow, the Blasterites demos, the adopted Vector CRT renderer (DP-0006, with visual-smoke evidence EV-0009), and an automatable smoke check (WI-SMOKE-0001, `scripts/smoke`) are all visible and merged, but DP-0006 is only partially implemented (internal presets, public API undecided per DP-0007, non-default presets not yet captured), and public vector/scene API design and cross-platform architecture are not yet complete.
+- Yellow: project identity, the browser/WebGPU baseline, the validation workflow, the Blasterites demos, the adopted Vector CRT renderer (DP-0006, with visual-smoke evidence EV-0009), and an automatable smoke check (WI-SMOKE-0001, `scripts/smoke`) are all visible and merged, but DP-0006 is only partially implemented (the public preset API is decided per the adopted DP-0007 but not yet built — WI-PRESET-0001 — and the non-default presets are not yet captured), and public vector/scene API design and cross-platform architecture are not yet complete.
 
 ## Active Priorities
 - Preserve the adopted DP-0001 baseline, DP-0004 validation workflow, DP-0005 demos, and DP-0006 renderer.
-- Advance the adopted DP-0006 follow-ups: maintain and extend the smoke check (WI-SMOKE-0001, done), capture the non-default presets, and decide the public preset API (DP-0007, proposed).
+- Advance the adopted DP-0006 follow-ups: maintain and extend the smoke check (WI-SMOKE-0001, done), and implement the adopted public preset API (DP-0007) via WI-PRESET-0001, which also captures the non-default presets.
 - Keep design proposal lifecycle metadata and directories aligned with what is merged.
 
 ## Risks
@@ -38,7 +38,7 @@ health: yellow
 - Browser/WebGPU behavior may vary and should be validated explicitly before claims are made.
 
 ## Recommended Next Actions
-1. Extend the `WI-SMOKE-0001` smoke check (`scripts/smoke`, already covering baseline/tester/tuner at 4:3/wide/tall) to the non-default presets once DP-0007 provides a selector.
-2. Resolve DP-0007 (whether DP-0006's internal preset set becomes a selectable public API), and visually capture the non-default presets.
+1. Implement `WI-PRESET-0001` (the adopted DP-0007 public preset API): a public `#[non_exhaustive]` `VectorDisplayPreset` selector at creation and runtime.
+2. As part of WI-PRESET-0001, extend the `WI-SMOKE-0001` smoke check to capture the non-default presets, so each advertised look has visual evidence.
 3. Select DP-0002 (architecture split) or DP-0003 (scene/material model) as the next workstream.
 4. Define the first public vector primitive or scene API target.
