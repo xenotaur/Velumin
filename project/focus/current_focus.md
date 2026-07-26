@@ -20,17 +20,17 @@ owner: project maintainers
 ## Priorities
 1. Preserve the WebGPU browser rendering baseline, the `scripts/validate` contract, and the Blasterites demo routes.
 2. Maintain and extend the `WI-SMOKE-0001` smoke check (`scripts/smoke`, done — covers baseline/tester/tuner at 4:3/wide/tall), e.g. to the non-default presets once they are selectable.
-3. Resolve `DP-0007` (whether the internal `VectorDisplayPreset` set becomes a selectable public API) and capture the non-default presets.
+3. Implement `WI-PRESET-0001` (the adopted `DP-0007` public preset API) and, as part of it, capture the non-default presets in the smoke check.
 4. Keep adopted design, work items, roadmap, focus, and evidence aligned with what is merged.
 
 ## Non-Goals
 - Do not implement full games as part of the rendering work; the Blasterites tester is a validation harness, not a playable game.
-- Do not promote the internal display-preset set to a stable public API before a maintainer decision to do so.
+- Do not advertise the non-default presets (`MonochromeBeam`/`ColorQuadraScan`/`CleanNeon`) as supported before they have recorded visual evidence, even though the public preset API is now adopted (`DP-0007`); its implementation is tracked but not yet started (`WI-PRESET-0001`, proposed).
 - Do not make WebGL2 fallback a milestone unless maintainers explicitly prioritize it later.
 - Do not begin native desktop implementation until maintainers explicitly select the DP-0002 workstream.
 
 ## Exit Criteria
-- DP-0006 is adopted (2026-07-24) with recorded browser/screenshot evidence that Arcade Balanced meets its acceptance target (EV-0009); its remaining follow-ups are represented as tracked work (`WI-SMOKE-0001` done, non-default preset capture, and the public-preset-API decision proposed as `DP-0007`), not open design questions.
+- DP-0006 is adopted (2026-07-24) with recorded browser/screenshot evidence that Arcade Balanced meets its acceptance target (EV-0009); its remaining follow-ups are represented as tracked work (`WI-SMOKE-0001` done; the public preset API decided by the adopted `DP-0007`, to be implemented by `WI-PRESET-0001` (proposed, not yet started), which also captures the non-default presets), not open design questions.
 - DP-0001, DP-0004, DP-0005, and DP-0006 remain represented as adopted design.
 - The browser demos remain recoverable through `scripts/validate`, `scripts/demos`, and the documented Rust/WASM/Vite baseline.
 - DP-0002 and DP-0003 remain represented as proposed follow-up directions until selected.

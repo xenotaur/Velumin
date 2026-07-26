@@ -30,6 +30,7 @@
 ## Confidence / Uncertainty Notes
 - High confidence: project identity, broad retro vector-graphics goal, current Rust/WASM/WebGPU implementation signals, and the merged Blasterites demos.
 - Medium confidence: the DP-0006 non-default presets, which are internal and not yet visually captured. The adopted default Arcade-Balanced output is validated by EV-0009 and by the WI-SMOKE-0001 automated smoke check (`scripts/smoke`, covering 4:3/wide/tall; skips on GPU-less CI), which also covers the non-4:3 letterbox/pillarbox path.
+- The public display-preset API is decided (DP-0007 adopted 2026-07-25: a public `#[non_exhaustive]` `VectorDisplayPreset` selector, named presets only in v1) but not yet implemented — tracked in WI-PRESET-0001, which also captures the non-default presets.
 - Low confidence: final API model, WebGL2 fallback value, browser support matrix, CI policy, and release packaging.
 
 ## Non-authoritative Notice
