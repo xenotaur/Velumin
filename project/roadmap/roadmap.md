@@ -36,7 +36,7 @@ owner: project maintainers
 ## Adopted Direction: DP-0006 Vector CRT Renderer Migration
 - Adopted 2026-07-24 as the project's vector-display rendering direction; `implementation_status: partial`.
 - Landed: a fixed 4:3 centered viewport, additive multi-layer glow compositing, and an internal `VectorDisplayPreset` set with `ArcadeBalanced` as the tuning target — validated by code inspection (`EV-0008`) and browser visual-smoke capture (`EV-0009`). The non-4:3 resize/letterbox path is now captured by the WI-SMOKE-0001 smoke check at wide and tall sizes.
-- Follow-up work under the adopted direction (tracked, not blocking): the automatable/committed screenshot smoke check with wide/tall resize capture (`WI-SMOKE-0001`, done), and the public preset API — decided by the adopted `DP-0007`, to be implemented by `WI-PRESET-0001` (proposed, not yet started), which also captures the non-default presets.
+- Follow-up work under the adopted direction: the automatable/committed screenshot smoke check with wide/tall resize capture (`WI-SMOKE-0001`, done), and the public preset API — decided by the adopted `DP-0007` and implemented in `WI-PRESET-0001`, which also captured the non-default presets. DP-0007's public custom display-settings API remains a deferred follow-up.
 
 ## Next Horizon: DP-0002 Cross-Platform Renderer Architecture
 - After the Vector CRT renderer stabilizes, split Velumin toward a platform-neutral core, shared `wgpu` renderer, browser frontend, and later native desktop frontend.

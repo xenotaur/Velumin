@@ -5,7 +5,9 @@ status: adopted
 owner: project maintainers
 created: 2026-07-25
 adopted: 2026-07-25
-implementation_status: not_started
+implementation_status: implemented
+implemented_by:
+  - WI-PRESET-0001
 scope: public rendering API, display presets, custom display settings
 depends_on:
   - DP-0006
@@ -22,7 +24,7 @@ Promote the internal Vector CRT display-preset model introduced by DP-0006 to a 
 The adopted shape (v1) is: a public `VectorDisplayPreset` enum (the four named looks), selectable both at renderer creation and at runtime. Preset **names** become a public contract; the numeric glow/stroke tuning behind each preset stays internal and re-tunable. A public custom-settings escape hatch is deferred to a follow-up.
 
 ## Adopted Decisions (2026-07-25)
-The proposal is adopted with these decisions resolving its open questions; implementation is not yet started (`implementation_status: not_started`) and is tracked in `WI-PRESET-0001`:
+The proposal is adopted with these decisions resolving its open questions; the v1 API is implemented by `WI-PRESET-0001` (`implementation_status: implemented`; the work item moves to `resolved` at closeout):
 
 - **Q1 — JS surface:** export `VectorDisplayPreset` as a `wasm-bindgen` enum (type-checked at the boundary), not string keys.
 - **Q2 — Selection timing:** both — a default preset chosen at `WebGPU::create()` and a runtime `set_display_preset(...)` setter.
@@ -31,7 +33,7 @@ The proposal is adopted with these decisions resolving its open questions; imple
 - **Q5 — Scope of settings:** display settings are global to the renderer for v1; per-scene/per-layer settings remain DP-0003 territory.
 - **Q6 — Preset vs viewport:** a preset covers glow/stroke style only; the 4:3 viewport/letterbox policy stays separate (`centered_4_3`).
 - **Enum stability:** `VectorDisplayPreset` is `#[non_exhaustive]` so adding presets later is not a breaking change.
-- **Prerequisite for advertising:** only `ArcadeBalanced` has visual evidence today; `WI-PRESET-0001` must capture the other three presets before they are advertised as supported.
+- **Visual evidence:** `WI-PRESET-0001` extended the `scripts/smoke` check to capture the three non-default presets on the deterministic tester frame (with a cross-preset distinctness assertion), so all four looks now have recorded visual evidence.
 
 ## Context
 DP-0006 is adopted and partially implemented. The renderer already carries a `VectorDisplaySettings` value (`glow_layers` + `stroke_width_scale`) and constructs it three ways in `webgpu_vector_lib/src/lib.rs`:
@@ -95,7 +97,7 @@ The v1 contract, per the Adopted Decisions above. Method names below are indicat
 
 ## Risks
 - **Premature name/look commitment.** Once preset names are public, renaming is breaking. Mitigate by keeping the set small (the current four) and additive.
-- **Unvalidated presets.** Only `ArcadeBalanced` has visual evidence (`EV-0009`). Advertising `MonochromeBeam`, `ColorQuadraScan`, `CleanNeon` before capturing them risks shipping looks that do not meet the DP-0006 quality bar. `WI-PRESET-0001` must capture the non-default presets before they are advertised as supported.
+- **Preset quality bar.** `MonochromeBeam`, `ColorQuadraScan`, and `CleanNeon` are now captured by the smoke check (`WI-PRESET-0001`), so all four looks have visual evidence; keep re-checking that captures meet the DP-0006 quality bar when the presets are re-tuned.
 - **API-surface creep.** Deferring the custom-settings API (Q3) keeps v1 minimal; a future custom path must stay small (glow layers + stroke scale) and not drift toward the full material model (DP-0003).
 
 ## Resolved / Deferred Questions
