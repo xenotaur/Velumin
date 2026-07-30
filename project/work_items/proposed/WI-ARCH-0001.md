@@ -49,7 +49,7 @@ artifacts_expected:
   - webgpu_vector_lib/src/lib.rs (updated)
 ---
 
-# Extract velumin-core Platform-Neutral Crate (DP-0002 Phase 1)
+# WI-ARCH-0001: Extract velumin-core Platform-Neutral Crate (DP-0002 Phase 1)
 
 ## Summary
 Extract a new `velumin-core` crate holding Velumin's platform-neutral vector/scene/style types, with zero dependency on `wasm-bindgen`, `web-sys`, or `wgpu` — the first concrete step of DP-0002 Phase 1 ("Rename and Split Boundaries"). `webgpu_vector_lib` becomes a Cargo workspace and depends on `velumin-core` for these types, but keeps the renderer and browser adapter for now.
@@ -79,7 +79,7 @@ DP-0002 (proposed) calls for a layered architecture (`velumin-core` / `velumin-r
 
 ## Required Changes
 1. Create `velumin-core/Cargo.toml` (new workspace member; `edition = "2024"`, `rust-version = "1.87"`). No dependencies beyond `std`/`core`: none of the extracted types (`Vec2`, `Color`, `StrokeStyle`, `Line`, `Polyline`, `VectorCommand`, the display-preset/settings types, `RenderViewport`) currently derive `bytemuck::Pod`/`Zeroable` — only `Vertex`/`GlowVertex`, which stay in `webgpu_vector_lib`, use `bytemuck`. Add it to `velumin-core` only if a moved type is later shown to need it.
-2. Move to `velumin-core/src/lib.rs`: `Vec2`, `Color`, `StrokeStyle`, `Line`, `Polyline`, `VectorCommand` (currently `webgpu_vector_lib/src/lib.rs:260-306`), `VectorDisplaySettings`/`VectorDisplayPreset`/`GlowLayer` (lines 62-221), `RenderViewport` (lines 223-250), and the pure geometry helpers `transform_points`, `lerp_vec2`, `stroke` (lines 1287-1316).
+2. Move to `velumin-core/src/lib.rs`: `Vec2`, `Color`, `StrokeStyle`, `Line`, `Polyline`, `VectorCommand` (currently `webgpu_vector_lib/src/lib.rs:260-306`), `VectorDisplaySettings`/`VectorDisplayPreset`/`GlowLayer` (`webgpu_vector_lib/src/lib.rs:62-221`), `RenderViewport` (`webgpu_vector_lib/src/lib.rs:223-250`), and the pure geometry helpers `transform_points`, `lerp_vec2`, `stroke` (`webgpu_vector_lib/src/lib.rs:1287-1316`).
 3. Add a root workspace `Cargo.toml` declaring members `["webgpu_vector_lib", "velumin-core"]`.
 4. Update `webgpu_vector_lib/Cargo.toml` to depend on `velumin-core` (path dependency); update `webgpu_vector_lib/src/lib.rs` imports so the existing public WASM API (`create`, `createWithPreset`, `setDisplayPreset`, the preset enum, vector command types) is unchanged for JS/Rust consumers.
 5. Keep `Vertex`/`GlowVertex` (wgpu vertex-layout structs), the tessellation functions that produce them, and the Blasterites demo-scene functions in `webgpu_vector_lib` for this phase (see Non-Goals).
