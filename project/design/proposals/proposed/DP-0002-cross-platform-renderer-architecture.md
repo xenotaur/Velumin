@@ -5,7 +5,13 @@ status: proposed
 owner: project maintainers
 created: 2026-05-07
 scope: velumin architecture
-depends_on: DP-0001
+depends_on:
+  - DP-0001
+related:
+  - DP-0003
+  - DP-0005
+  - DP-0006
+  - DP-0007
 ---
 
 # Cross-Platform Vector Renderer Architecture
@@ -22,6 +28,22 @@ Use `wgpu` as the shared rendering backend for both targets. Treat Bevy integrat
 Velumin's intended product shape is a retro vector-graphics library for games that look like Space War, Asteroids, and Star Castle, with crisp geometry and raster glow. The project should support browser games and a native desktop path suitable for Steam distribution.
 
 DP-0001 covers the WebGPU-first browser rendering upgrade. This proposal extends that direction into the broader architecture needed to support desktop games without turning Velumin into a single-engine game project.
+
+### Status as of 2026-07-25 (refresh)
+This proposal predates several adopted proposals that substantially filled in the *content* this architecture is meant to carry, without changing the architecture decision itself:
+
+- **DP-0001** (adopted) delivered the modern `wgpu`-first browser renderer this proposal builds on.
+- **DP-0005** (adopted) added the deterministic Blasterites tester/tuner demos — a richer validation scene than the original white-line baseline, still browser-only.
+- **DP-0006** (adopted, partial) added the fixed 4:3 viewport, additive multi-layer glow/composite passes, and the internal `VectorDisplayPreset` model — i.e. Milestone Phase 4 ("Vector Commands and Glow") is largely done.
+- **DP-0007** (adopted) promoted the display-preset model to a small public API (`VectorDisplayPreset`, `WebGPU::create_with_preset`/`set_display_preset`), and `WI-SMOKE-0001` added a scripted screenshot smoke check (`scripts/smoke`) — covering the "keep pixel-level or screenshot-based validation" goal in Phase 0.
+
+None of this reduces the scope of DP-0002: **everything above still lives inside the single `webgpu_vector_lib` crate**, fused with the browser/WASM adapter (see Current Implementation Boundary below). No crate split exists, and no native `winit` frontend exists. What DP-0002 still needs to deliver is unchanged — extracting platform-neutral boundaries and adding a native desktop target — but the Milestones below are updated to reflect that the *rendering content* for Phases 0/2/4 already exists and needs to be *relocated*, not built from scratch.
+
+### Current Implementation Boundary (as of 2026-07-25)
+- The repository is a single crate, `webgpu_vector_lib` (`webgpu_vector_lib/Cargo.toml`), not yet the `velumin-*` workspace this proposal describes.
+- `webgpu_vector_lib/src/lib.rs` is a single ~1,800-line file mixing platform-neutral vector/scene logic, the shared `wgpu` renderer, and the browser/`wasm-bindgen`/`web-sys` adapter, gated throughout with `#[cfg(target_arch = "wasm32")]` / `#[cfg_attr(...)]`.
+- There is no `winit` dependency and no native desktop example; the only frontend is the browser (`webgpu_vector_lib/web/`, Vite).
+- A screenshot-based visual smoke check already exists (`scripts/smoke`, Playwright-driven), ahead of where Phase 0 originally expected it.
 
 ## Decision
 Adopt a layered Rust architecture:
@@ -70,8 +92,8 @@ The browser frontend should remain the fastest way to inspect and share demos. I
 
 - run through native browser WebGPU when available;
 - detect missing/blocked WebGPU adapters before renderer creation;
-- expose a small JavaScript API for examples and game loops;
-- preserve visual smoke tests from DP-0001;
+- expose a small JavaScript API for examples and game loops (a first slice of this now exists: `WebGPU.create`/`createWithPreset`/`setDisplayPreset`, DP-0007);
+- preserve visual smoke tests from DP-0001 (now scripted via `scripts/smoke`, WI-SMOKE-0001);
 - keep WebGL2 fallback optional and explicitly out of scope until chosen.
 
 ### Native Desktop With `winit`
@@ -112,41 +134,41 @@ The exact names may change if the project renames `webgpu_vector_lib` to `velumi
 
 ## Milestones
 
-### Phase 0: Preserve Current Browser Baseline
-- Keep the current browser white-line smoke test passing.
-- Document build/run commands.
-- Keep pixel-level or screenshot-based validation for "not a black canvas."
+Status tags below reflect the 2026-07-25 refresh, grounded in the current single-crate repository. "Done (browser-only)" means the capability exists but only inside the fused `webgpu_vector_lib` crate — none of it is yet behind the platform-neutral boundaries this proposal defines.
 
-### Phase 1: Rename and Split Boundaries
-- Decide whether to rename `webgpu_vector_lib` to `velumin`.
-- Extract platform-neutral command types.
-- Isolate browser setup from renderer setup.
-- Keep one browser example working throughout.
+### Phase 0: Preserve Current Browser Baseline — Done (browser-only)
+- Keep the current browser white-line smoke test passing. — done; preserved through DP-0001/DP-0005/DP-0006 and covered by `scripts/smoke`.
+- Document build/run commands. — done (`README.md`, `scripts/README.md`).
+- Keep pixel-level or screenshot-based validation for "not a black canvas." — done and exceeded: `scripts/smoke` (Playwright) asserts structural pixel properties across baseline, tester, tuner, and all four display presets, at 4:3/wide/tall.
 
-### Phase 2: Modern Shared `wgpu` Renderer
-- Complete the DP-0001 `wgpu` upgrade.
-- Introduce a reusable renderer state that can render to any supported `wgpu::Surface`.
-- Add explicit adapter/capability negotiation for web and desktop.
+### Phase 1: Rename and Split Boundaries — Not started
+- Decide whether to rename `webgpu_vector_lib` to `velumin`. — undecided.
+- Extract platform-neutral command types. — not started; vector command types (`VectorCommand`, `Line`, `Polyline`, etc.) still live in `webgpu_vector_lib/src/lib.rs` alongside the renderer and browser adapter.
+- Isolate browser setup from renderer setup. — not started at the crate level (DP-0006 separated these *within* the single file, not into separate crates).
+- Keep one browser example working throughout. — n/a until this phase starts; trivially true today since nothing has moved.
 
-### Phase 3: Native `winit` Shell
-- Add a desktop example binary.
-- Create a window with `winit`.
-- Initialize `wgpu` against that native surface.
-- Render the same visual smoke scene as the browser frontend.
-- Validate on at least one machine per target OS before calling the phase complete.
+This is the first phase with no completed work; it is the concrete prerequisite for Phase 3.
 
-### Phase 4: Vector Commands and Glow
-- Add line/polyline command ingestion.
-- Batch thick vector geometry into GPU buffers.
-- Add offscreen glow/composite passes.
-- Keep browser and desktop outputs visually comparable.
+### Phase 2: Modern Shared `wgpu` Renderer — Partially done (browser-only)
+- Complete the DP-0001 `wgpu` upgrade. — done (DP-0001 adopted).
+- Introduce a reusable renderer state that can render to any supported `wgpu::Surface`. — not done: `Renderer`/`WebGPU::create` in `webgpu_vector_lib/src/lib.rs` is constructed from a browser `HtmlCanvasElement` and is not surface-agnostic.
+- Add explicit adapter/capability negotiation for web and desktop. — web-side capability checks exist (missing/blocked WebGPU adapter handling); desktop-side negotiation does not exist (no native surface path at all).
 
-### Phase 5: Steam Packaging Spike
+### Phase 3: Native `winit` Shell — Not started
+- No `winit` dependency exists in `webgpu_vector_lib/Cargo.toml`, and no desktop example or binary exists in the repository. All bullets in this phase remain as originally scoped.
+
+### Phase 4: Vector Commands and Glow — Done (browser-only)
+- Add line/polyline command ingestion. — done (`VectorCommand::Line`/`Polyline`).
+- Batch thick vector geometry into GPU buffers. — done (CPU-tessellated thick-line triangles, DP-0001).
+- Add offscreen glow/composite passes. — done (additive multi-layer glow + composite, DP-0006), now with a public preset selector (DP-0007) and a smoke check covering all four presets.
+- Keep browser and desktop outputs visually comparable. — not yet assessable: there is no desktop output to compare against. This bullet becomes active once Phase 3 exists.
+
+### Phase 5: Steam Packaging Spike — Not started
 - Create a minimal desktop build artifact for Windows, Linux, and macOS.
 - Document packaging requirements, including macOS notarization and Linux 64-bit expectations.
 - Keep Steamworks SDK/API integration optional until a game needs Steam-specific features.
 
-### Phase 6: Bevy Plugin Spike
+### Phase 6: Bevy Plugin Spike — Not started
 - Add an experimental `velumin-bevy` integration.
 - Render Velumin commands from a Bevy app.
 - Keep this behind a feature flag or separate package until stable.
@@ -211,6 +233,10 @@ Integrate Velumin-like visuals into Unity, Godot, or Unreal.
 
 ## References
 - DP-0001: `project/design/proposals/adopted/DP-0001-modern-webgpu-rendering.md`
+- DP-0005: `project/design/proposals/adopted/DP-0005-blasterites-tester-demo-and-visual-smoke.md`
+- DP-0006: `project/design/proposals/adopted/DP-0006-vector-crt-renderer-migration.md`
+- DP-0007: `project/design/proposals/adopted/DP-0007-display-preset-public-api.md`
+- Current single-crate implementation: `webgpu_vector_lib/src/lib.rs`, `webgpu_vector_lib/Cargo.toml`
 - `wgpu` docs: https://docs.rs/crate/wgpu/latest
 - `winit` docs: https://docs.rs/winit/latest/winit/
 - Steam platforms documentation: https://partner.steamgames.com/doc/store/application/platforms
