@@ -3,10 +3,10 @@ use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-pub use velumin_core::{
-    Color, GlowLayer, Line, Polyline, RenderViewport, StrokeStyle, Vec2, VectorCommand,
-    VectorDisplaySettings, lerp_vec2, stroke, transform_points,
-};
+#[cfg(target_arch = "wasm32")]
+use velumin_core::RenderViewport;
+pub use velumin_core::{Color, Line, Polyline, StrokeStyle, Vec2, VectorCommand};
+use velumin_core::{GlowLayer, VectorDisplaySettings, lerp_vec2, stroke, transform_points};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]

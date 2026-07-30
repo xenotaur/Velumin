@@ -134,20 +134,20 @@ The exact names may change if the project renames `webgpu_vector_lib` to `velumi
 
 ## Milestones
 
-Status tags below reflect the 2026-07-25 refresh, grounded in the current single-crate repository. "Done (browser-only)" means the capability exists but only inside the fused `webgpu_vector_lib` crate — none of it is yet behind the platform-neutral boundaries this proposal defines.
+Status tags below reflect the 2026-07-25 refresh plus the 2026-07-30 Phase 1 update (WI-ARCH-0001, PR #17), which converted the repository into a Cargo workspace (`velumin-core` + `webgpu_vector_lib`). "Done (browser-only)" means the capability exists but only inside `webgpu_vector_lib` — not yet behind the remaining platform-neutral boundaries this proposal defines (the renderer/browser-adapter split, in particular).
 
 ### Phase 0: Preserve Current Browser Baseline — Done (browser-only)
 - Keep the current browser white-line smoke test passing. — done; preserved through DP-0001/DP-0005/DP-0006 and covered by `scripts/smoke`.
 - Document build/run commands. — done (`README.md`, `scripts/README.md`).
 - Keep pixel-level or screenshot-based validation for "not a black canvas." — done and exceeded: `scripts/smoke` (Playwright) asserts structural pixel properties for the baseline, tester (pre/post-impact), tuner, and all four display presets at 4:3, and additionally exercises wide and tall (non-4:3) viewports for the Blasterites tester specifically. The baseline, tuner, and non-default presets are not yet captured at wide/tall.
 
-### Phase 1: Rename and Split Boundaries — Not started
-- Decide whether to rename `webgpu_vector_lib` to `velumin`. — undecided.
-- Extract platform-neutral command types. — not started; vector command types (`VectorCommand`, `Line`, `Polyline`, etc.) still live in `webgpu_vector_lib/src/lib.rs` alongside the renderer and browser adapter.
-- Isolate browser setup from renderer setup. — not started at the crate level (DP-0006 separated these *within* the single file, not into separate crates).
-- Keep one browser example working throughout. — n/a until this phase starts; trivially true today since nothing has moved.
+### Phase 1: Rename and Split Boundaries — Partially done
+- Decide whether to rename `webgpu_vector_lib` to `velumin`. — still undecided; explicitly deferred by [WI-ARCH-0001](../../../work_items/resolved/WI-ARCH-0001.md)'s scoping decision (`project/memory/decision_log.md`, 2026-07-30).
+- Extract platform-neutral command types. — done: `WI-ARCH-0001` (PR #17) extracted `velumin-core` (zero `wasm-bindgen`/`web-sys`/`wgpu` dependency) holding `Vec2`, `Color`, `StrokeStyle`, `Line`, `Polyline`, `VectorCommand`, `VectorDisplaySettings`, `GlowLayer`, `RenderViewport`, and the pure geometry helpers. The repository is now a Cargo workspace of `velumin-core` and `webgpu_vector_lib`. `VectorDisplayPreset` stays in `webgpu_vector_lib` since it must remain `wasm-bindgen`-exportable.
+- Isolate browser setup from renderer setup. — not started at the crate level; `velumin-renderer-wgpu` / `velumin-web` remain unsplit inside `webgpu_vector_lib` (deferred to a future phase per WI-ARCH-0001's Non-Goals, safer to validate once Phase 3 exists).
+- Keep one browser example working throughout. — done; `scripts/smoke` reported 9/9 checks at MAD 0.000 (zero visual regression) after the split.
 
-This is the first phase with no completed work; it is the concrete prerequisite for Phase 3.
+The command-type extraction is done; the renderer/browser-adapter split remains the concrete prerequisite for Phase 3.
 
 ### Phase 2: Modern Shared `wgpu` Renderer — Partially done (browser-only)
 - Complete the DP-0001 `wgpu` upgrade. — done (DP-0001 adopted).

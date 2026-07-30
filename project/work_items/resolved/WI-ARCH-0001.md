@@ -2,7 +2,7 @@
 id: WI-ARCH-0001
 title: Extract velumin-core platform-neutral crate (DP-0002 Phase 1)
 type: deliverable
-status: proposed
+status: resolved
 priority: medium
 owner: project maintainers
 assigned_agents: []
@@ -16,7 +16,7 @@ depends_on: []
 blocked_by: []
 blocked: false
 blocked_reason: null
-resolution: null
+resolution: Implemented in PR #17 (https://github.com/xenotaur/Velumin/pull/17) — extracted velumin-core (zero wasm-bindgen/web-sys/wgpu dependency) and converted the repository into a Cargo workspace; webgpu_vector_lib depends on and re-exports from velumin-core. scripts/smoke reported 9/9 checks at MAD 0.000 (zero visual regression). VectorDisplayPreset stayed in webgpu_vector_lib (wasm-bindgen-exportability constraint), an approved deviation from the item's literal Required Changes. Resolution will be updated with the merge commit SHA at closeout.
 expected_actions:
   - create_file
   - edit_file
