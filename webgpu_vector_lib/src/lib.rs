@@ -3,6 +3,11 @@ use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
+pub use velumin_core::{
+    Color, GlowLayer, Line, Polyline, RenderViewport, StrokeStyle, Vec2, VectorCommand,
+    VectorDisplaySettings, lerp_vec2, stroke, transform_points,
+};
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
@@ -57,141 +62,19 @@ impl GlowVertex {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-struct VectorDisplaySettings {
-    glow_layers: [GlowLayer; 3],
-    glow_layer_count: usize,
-    stroke_width_scale: f32,
-}
-
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-impl VectorDisplaySettings {
-    const ARCADE_BALANCED_GLOW: [GlowLayer; 3] = [
-        GlowLayer {
-            width_scale: 2.2,
-            intensity_scale: 0.33,
-        },
-        GlowLayer {
-            width_scale: 5.0,
-            intensity_scale: 0.12,
-        },
-        GlowLayer {
-            width_scale: 12.3,
-            intensity_scale: 0.03,
-        },
-    ];
-    const MONOCHROME_BEAM_GLOW: [GlowLayer; 2] = [
-        GlowLayer {
-            width_scale: 2.0,
-            intensity_scale: 0.22,
-        },
-        GlowLayer {
-            width_scale: 4.5,
-            intensity_scale: 0.08,
-        },
-    ];
-    const COLOR_QUADRA_SCAN_GLOW: [GlowLayer; 3] = [
-        GlowLayer {
-            width_scale: 2.6,
-            intensity_scale: 0.35,
-        },
-        GlowLayer {
-            width_scale: 6.5,
-            intensity_scale: 0.16,
-        },
-        GlowLayer {
-            width_scale: 11.0,
-            intensity_scale: 0.06,
-        },
-    ];
-    const CLEAN_NEON_GLOW: [GlowLayer; 2] = [
-        GlowLayer {
-            width_scale: 3.0,
-            intensity_scale: 0.18,
-        },
-        GlowLayer {
-            width_scale: 7.0,
-            intensity_scale: 0.07,
-        },
-    ];
-
-    fn from_preset(preset: VectorDisplayPreset) -> Self {
-        let layers: &[GlowLayer] = match preset {
-            VectorDisplayPreset::ArcadeBalanced => &Self::ARCADE_BALANCED_GLOW,
-            VectorDisplayPreset::MonochromeBeam => &Self::MONOCHROME_BEAM_GLOW,
-            VectorDisplayPreset::ColorQuadraScan => &Self::COLOR_QUADRA_SCAN_GLOW,
-            VectorDisplayPreset::CleanNeon => &Self::CLEAN_NEON_GLOW,
-        };
-        let stroke_width_scale = match preset {
-            VectorDisplayPreset::ArcadeBalanced => 0.35,
-            _ => 1.0,
-        };
-        Self::from_layers(layers, stroke_width_scale)
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn from_tuner(
-        stroke_width_scale: f32,
-        near_width_scale: f32,
-        near_intensity_scale: f32,
-        mid_width_scale: f32,
-        mid_intensity_scale: f32,
-        far_width_scale: f32,
-        far_intensity_scale: f32,
-    ) -> Self {
-        Self::from_layers(
-            &[
-                GlowLayer {
-                    width_scale: near_width_scale,
-                    intensity_scale: near_intensity_scale,
-                },
-                GlowLayer {
-                    width_scale: mid_width_scale,
-                    intensity_scale: mid_intensity_scale,
-                },
-                GlowLayer {
-                    width_scale: far_width_scale,
-                    intensity_scale: far_intensity_scale,
-                },
-            ],
-            stroke_width_scale,
-        )
-    }
-
-    fn from_layers(layers: &[GlowLayer], stroke_width_scale: f32) -> Self {
-        let mut glow_layers = [GlowLayer::disabled(); 3];
-        let glow_layer_count = layers.len().min(glow_layers.len());
-
-        for (target, source) in glow_layers.iter_mut().zip(layers.iter()) {
-            *target = GlowLayer {
-                width_scale: source.width_scale.clamp(1.0, 16.0),
-                intensity_scale: source.intensity_scale.clamp(0.0, 1.0),
-            };
-        }
-
-        Self {
-            glow_layers,
-            glow_layer_count,
-            stroke_width_scale: stroke_width_scale.clamp(0.25, 3.0),
-        }
-    }
-
-    fn glow_layers(&self) -> &[GlowLayer] {
-        &self.glow_layers[..self.glow_layer_count]
-    }
-
-    fn stroke_width_scale(&self) -> f32 {
-        self.stroke_width_scale
-    }
-}
-
 /// A named, classic-inspired vector-display look.
 ///
 /// This is the public v1 display-preset API (DP-0007): the numeric glow/stroke
 /// tuning behind each look is internal and may be re-tuned, but these variant
 /// names are a stable contract. Marked `#[non_exhaustive]` so future presets can
 /// be added without breaking downstream code.
+///
+/// This enum (and the preset -> glow-layer mapping below) stays in
+/// `webgpu_vector_lib` rather than `velumin-core`: it must remain
+/// wasm-bindgen-exportable (it is a parameter type on `create_with_preset` /
+/// `set_display_preset`), and `velumin-core` has no `wasm-bindgen` dependency.
+/// The clamped, renderer-ready `VectorDisplaySettings`/`GlowLayer` shapes it
+/// maps into are the platform-neutral part and live in `velumin-core`.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -202,98 +85,72 @@ pub enum VectorDisplayPreset {
     CleanNeon,
 }
 
-#[derive(Clone, Copy, Debug)]
+const ARCADE_BALANCED_GLOW: [GlowLayer; 3] = [
+    GlowLayer {
+        width_scale: 2.2,
+        intensity_scale: 0.33,
+    },
+    GlowLayer {
+        width_scale: 5.0,
+        intensity_scale: 0.12,
+    },
+    GlowLayer {
+        width_scale: 12.3,
+        intensity_scale: 0.03,
+    },
+];
+const MONOCHROME_BEAM_GLOW: [GlowLayer; 2] = [
+    GlowLayer {
+        width_scale: 2.0,
+        intensity_scale: 0.22,
+    },
+    GlowLayer {
+        width_scale: 4.5,
+        intensity_scale: 0.08,
+    },
+];
+const COLOR_QUADRA_SCAN_GLOW: [GlowLayer; 3] = [
+    GlowLayer {
+        width_scale: 2.6,
+        intensity_scale: 0.35,
+    },
+    GlowLayer {
+        width_scale: 6.5,
+        intensity_scale: 0.16,
+    },
+    GlowLayer {
+        width_scale: 11.0,
+        intensity_scale: 0.06,
+    },
+];
+const CLEAN_NEON_GLOW: [GlowLayer; 2] = [
+    GlowLayer {
+        width_scale: 3.0,
+        intensity_scale: 0.18,
+    },
+    GlowLayer {
+        width_scale: 7.0,
+        intensity_scale: 0.07,
+    },
+];
+
+/// Map a named preset to a clamped, renderer-ready [`VectorDisplaySettings`].
+/// Replaces the former inherent `VectorDisplaySettings::from_preset` now that
+/// the settings type lives in `velumin-core` (see the [`VectorDisplayPreset`]
+/// doc comment for why this mapping itself stays here).
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-struct GlowLayer {
-    width_scale: f32,
-    intensity_scale: f32,
-}
-
-impl GlowLayer {
-    const fn disabled() -> Self {
-        Self {
-            width_scale: 1.0,
-            intensity_scale: 0.0,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-struct RenderViewport {
-    x: u32,
-    y: u32,
-    width: u32,
-    height: u32,
-}
-
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-impl RenderViewport {
-    const TARGET_ASPECT: f32 = 4.0 / 3.0;
-
-    fn centered_4_3(surface_width: u32, surface_height: u32) -> Self {
-        let surface_width = surface_width.max(1);
-        let surface_height = surface_height.max(1);
-        let surface_aspect = surface_width as f32 / surface_height as f32;
-
-        if surface_aspect > Self::TARGET_ASPECT {
-            let width = ((surface_height as f32 * Self::TARGET_ASPECT).round() as u32).max(1);
-            Self {
-                x: (surface_width - width) / 2,
-                y: 0,
-                width,
-                height: surface_height,
-            }
-        } else {
-            let height = ((surface_width as f32 / Self::TARGET_ASPECT).round() as u32).max(1);
-            Self {
-                x: 0,
-                y: (surface_height - height) / 2,
-                width: surface_width,
-                height,
-            }
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Vec2 {
-    pub x: f32,
-    pub y: f32,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Color {
-    pub red: f32,
-    pub green: f32,
-    pub blue: f32,
-    pub alpha: f32,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct StrokeStyle {
-    pub width: f32,
-    pub color: Color,
-    pub intensity: f32,
-}
-
-#[derive(Clone, Debug)]
-pub struct Line {
-    pub start: Vec2,
-    pub end: Vec2,
-    pub style: StrokeStyle,
-}
-
-#[derive(Clone, Debug)]
-pub struct Polyline {
-    pub points: Vec<Vec2>,
-    pub style: StrokeStyle,
-}
-
-#[derive(Clone, Debug)]
-pub enum VectorCommand {
-    Line(Line),
-    Polyline(Polyline),
+fn display_settings_from_preset(preset: VectorDisplayPreset) -> VectorDisplaySettings {
+    let layers: &[GlowLayer] = match preset {
+        VectorDisplayPreset::ArcadeBalanced => &ARCADE_BALANCED_GLOW,
+        VectorDisplayPreset::MonochromeBeam => &MONOCHROME_BEAM_GLOW,
+        VectorDisplayPreset::ColorQuadraScan => &COLOR_QUADRA_SCAN_GLOW,
+        VectorDisplayPreset::CleanNeon => &CLEAN_NEON_GLOW,
+    };
+    let stroke_width_scale = match preset {
+        VectorDisplayPreset::ArcadeBalanced => 0.35,
+        _ => 1.0,
+    };
+    VectorDisplaySettings::from_layers(layers, stroke_width_scale)
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
@@ -412,7 +269,7 @@ impl WebGPU {
     /// `render` / `render_blasterites_tester` call.
     #[wasm_bindgen(js_name = setDisplayPreset)]
     pub fn set_display_preset(&mut self, preset: VectorDisplayPreset) {
-        self.renderer.display_settings = VectorDisplaySettings::from_preset(preset);
+        self.renderer.display_settings = display_settings_from_preset(preset);
     }
 
     #[wasm_bindgen]
@@ -667,7 +524,7 @@ impl Renderer {
             glow_vertex_buffer,
             glow_vertex_capacity: 0,
             glow_vertex_count: 0,
-            display_settings: VectorDisplaySettings::from_preset(preset),
+            display_settings: display_settings_from_preset(preset),
         })
     }
 
@@ -1283,36 +1140,6 @@ fn blasterites_spark_lines(time_ms: f32) -> Vec<(Vec2, Vec2, f32)> {
         .collect()
 }
 
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-fn transform_points(points: &[Vec2], offset: Vec2, angle: f32, scale: f32) -> Vec<Vec2> {
-    let sin = angle.sin();
-    let cos = angle.cos();
-    points
-        .iter()
-        .map(|point| Vec2 {
-            x: offset.x + (point.x * cos - point.y * sin) * scale,
-            y: offset.y + (point.x * sin + point.y * cos) * scale,
-        })
-        .collect()
-}
-
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-fn lerp_vec2(start: Vec2, end: Vec2, progress: f32) -> Vec2 {
-    Vec2 {
-        x: start.x + (end.x - start.x) * progress,
-        y: start.y + (end.y - start.y) * progress,
-    }
-}
-
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-fn stroke(width: f32, color: Color, intensity: f32) -> StrokeStyle {
-    StrokeStyle {
-        width,
-        color,
-        intensity,
-    }
-}
-
 #[allow(dead_code)]
 fn tessellate_commands(commands: &[VectorCommand]) -> Vec<Vertex> {
     tessellate_commands_with_style_scale(commands, 1.0, 1.0)
@@ -1611,7 +1438,7 @@ mod tests {
 
     #[test]
     fn layered_glow_tessellates_multiple_soft_emission_bands() {
-        let settings = VectorDisplaySettings::from_preset(VectorDisplayPreset::ArcadeBalanced);
+        let settings = display_settings_from_preset(VectorDisplayPreset::ArcadeBalanced);
         let vertices = tessellate_glow_commands(
             &[VectorCommand::Line(Line {
                 start: Vec2 { x: -0.75, y: 0.0 },
@@ -1636,7 +1463,7 @@ mod tests {
 
     #[test]
     fn arcade_balanced_preset_encodes_tuned_defaults() {
-        let settings = VectorDisplaySettings::from_preset(VectorDisplayPreset::ArcadeBalanced);
+        let settings = display_settings_from_preset(VectorDisplayPreset::ArcadeBalanced);
 
         assert_near(settings.stroke_width_scale(), 0.35);
         assert_eq!(settings.glow_layers().len(), 3);
@@ -1656,7 +1483,7 @@ mod tests {
             VectorDisplayPreset::ColorQuadraScan,
             VectorDisplayPreset::CleanNeon,
         ] {
-            let settings = VectorDisplaySettings::from_preset(preset);
+            let settings = display_settings_from_preset(preset);
 
             assert!(!settings.glow_layers().is_empty());
             for layer in settings.glow_layers() {
@@ -1666,22 +1493,6 @@ mod tests {
                 assert!(layer.intensity_scale > 0.0);
             }
         }
-    }
-
-    #[test]
-    fn tuner_settings_are_clamped_to_renderer_bounds() {
-        let min_settings = VectorDisplaySettings::from_tuner(0.1, 0.1, -1.0, 5.0, 0.25, 99.0, 2.0);
-        let max_settings = VectorDisplaySettings::from_tuner(9.0, 0.1, -1.0, 5.0, 0.25, 99.0, 2.0);
-
-        assert_near(min_settings.stroke_width_scale(), 0.25);
-        assert_near(max_settings.stroke_width_scale(), 3.0);
-        assert_eq!(min_settings.glow_layers().len(), 3);
-        assert_near(min_settings.glow_layers()[0].width_scale, 1.0);
-        assert_near(min_settings.glow_layers()[0].intensity_scale, 0.0);
-        assert_near(min_settings.glow_layers()[1].width_scale, 5.0);
-        assert_near(min_settings.glow_layers()[1].intensity_scale, 0.25);
-        assert_near(min_settings.glow_layers()[2].width_scale, 16.0);
-        assert_near(min_settings.glow_layers()[2].intensity_scale, 1.0);
     }
 
     #[test]
@@ -1699,37 +1510,6 @@ mod tests {
         assert_vec2_near(crisp_vertices[0].position, [-0.75, -0.04]);
         assert_near(glow_vertices[0].radius, 0.088);
         assert_near(glow_vertices[0].core_width, 0.08);
-    }
-
-    #[test]
-    fn centered_viewport_preserves_four_by_three_aspect() {
-        assert_eq!(
-            RenderViewport::centered_4_3(1600, 600),
-            RenderViewport {
-                x: 400,
-                y: 0,
-                width: 800,
-                height: 600,
-            }
-        );
-        assert_eq!(
-            RenderViewport::centered_4_3(800, 1000),
-            RenderViewport {
-                x: 0,
-                y: 200,
-                width: 800,
-                height: 600,
-            }
-        );
-        assert_eq!(
-            RenderViewport::centered_4_3(800, 600),
-            RenderViewport {
-                x: 0,
-                y: 0,
-                width: 800,
-                height: 600,
-            }
-        );
     }
 
     #[test]

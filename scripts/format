@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MANIFEST="$ROOT/webgpu_vector_lib/Cargo.toml"
+MANIFEST="$ROOT/Cargo.toml"
 
 if [[ "${1:-}" == "--check" ]]; then
   cargo fmt --manifest-path "$MANIFEST" --all -- --check
