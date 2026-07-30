@@ -26,3 +26,34 @@
 ### Status
 - Accepted (Bootstrap Phase)
 
+## 2026-07-30: Scope WI-ARCH-0001 without the webgpu_vector_lib rename
+
+### Summary
+- When scoping `WI-ARCH-0001` (extracting a `velumin-core` crate per DP-0002
+  Phase 1), the maintainer chose to keep the crate name `webgpu_vector_lib`
+  for this work item rather than rename it to `velumin` in the same change.
+
+### Decisions
+- `WI-ARCH-0001` extracts `velumin-core` as a new workspace member but does
+  not rename the existing `webgpu_vector_lib` crate.
+- This is a scoping decision for `WI-ARCH-0001` only — it does **not**
+  resolve DP-0002's own open question ("Decide whether to rename
+  `webgpu_vector_lib` to `velumin`"), which remains `undecided`, and does not
+  resolve the `project/design/design.md` TODO on package identity. Both stay
+  open for a future, separate decision.
+
+### Rationale
+- Keeping the existing crate name in this change limits blast radius (no
+  `Cargo.toml`/`package.json`/CI path renames) while still extracting the new
+  `velumin-core` member under its target name.
+- A full rename is a separable, larger decision (affects publishing, CI,
+  docs) better made on its own rather than bundled into a structural
+  extraction refactor.
+
+### Uncertainty / Follow-ups
+- Whether/when to rename `webgpu_vector_lib` to `velumin` remains open; see
+  DP-0002 Phase 1 and `project/design/design.md`'s TODO.
+
+### Status
+- Accepted (scoped to WI-ARCH-0001 only)
+
