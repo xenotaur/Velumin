@@ -92,7 +92,7 @@ The browser frontend should remain the fastest way to inspect and share demos. I
 
 - run through native browser WebGPU when available;
 - detect missing/blocked WebGPU adapters before renderer creation;
-- expose a small JavaScript API for examples and game loops (a first slice of this now exists: `WebGPU.create`/`createWithPreset`/`setDisplayPreset`, DP-0007);
+- expose a small JavaScript API for examples and game loops (a first slice of this now exists: `WebGPU.create`, `WebGPU.createWithPreset`, and instance method `gpu.setDisplayPreset`, DP-0007);
 - preserve visual smoke tests from DP-0001 (now scripted via `scripts/smoke`, WI-SMOKE-0001);
 - keep WebGL2 fallback optional and explicitly out of scope until chosen.
 
@@ -139,7 +139,7 @@ Status tags below reflect the 2026-07-25 refresh, grounded in the current single
 ### Phase 0: Preserve Current Browser Baseline — Done (browser-only)
 - Keep the current browser white-line smoke test passing. — done; preserved through DP-0001/DP-0005/DP-0006 and covered by `scripts/smoke`.
 - Document build/run commands. — done (`README.md`, `scripts/README.md`).
-- Keep pixel-level or screenshot-based validation for "not a black canvas." — done and exceeded: `scripts/smoke` (Playwright) asserts structural pixel properties across baseline, tester, tuner, and all four display presets, at 4:3/wide/tall.
+- Keep pixel-level or screenshot-based validation for "not a black canvas." — done and exceeded: `scripts/smoke` (Playwright) asserts structural pixel properties for the baseline, tester (pre/post-impact), tuner, and all four display presets at 4:3, and additionally exercises wide and tall (non-4:3) viewports for the Blasterites tester specifically. The baseline, tuner, and non-default presets are not yet captured at wide/tall.
 
 ### Phase 1: Rename and Split Boundaries — Not started
 - Decide whether to rename `webgpu_vector_lib` to `velumin`. — undecided.
@@ -157,11 +157,11 @@ This is the first phase with no completed work; it is the concrete prerequisite 
 ### Phase 3: Native `winit` Shell — Not started
 - No `winit` dependency exists in `webgpu_vector_lib/Cargo.toml`, and no desktop example or binary exists in the repository. All bullets in this phase remain as originally scoped.
 
-### Phase 4: Vector Commands and Glow — Done (browser-only)
+### Phase 4: Vector Commands and Glow — Partially done (browser rendering complete; cross-platform requirement outstanding)
 - Add line/polyline command ingestion. — done (`VectorCommand::Line`/`Polyline`).
 - Batch thick vector geometry into GPU buffers. — done (CPU-tessellated thick-line triangles, DP-0001).
 - Add offscreen glow/composite passes. — done (additive multi-layer glow + composite, DP-0006), now with a public preset selector (DP-0007) and a smoke check covering all four presets.
-- Keep browser and desktop outputs visually comparable. — not yet assessable: there is no desktop output to compare against. This bullet becomes active once Phase 3 exists.
+- Keep browser and desktop outputs visually comparable. — not done and not yet assessable: there is no desktop output to compare against (Phase 3 has not started). This phase cannot be marked fully done until Phase 3 exists and comparability is validated.
 
 ### Phase 5: Steam Packaging Spike — Not started
 - Create a minimal desktop build artifact for Windows, Linux, and macOS.
