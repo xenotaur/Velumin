@@ -16,7 +16,7 @@ depends_on: []
 blocked_by: []
 blocked: false
 blocked_reason: null
-resolution: Implemented in PR #17 (https://github.com/xenotaur/Velumin/pull/17) — extracted velumin-core (zero wasm-bindgen/web-sys/wgpu dependency) and converted the repository into a Cargo workspace; webgpu_vector_lib depends on and re-exports from velumin-core. scripts/smoke reported 9/9 checks at MAD 0.000 (zero visual regression). VectorDisplayPreset stayed in webgpu_vector_lib (wasm-bindgen-exportability constraint), an approved deviation from the item's literal Required Changes. Resolution will be updated with the merge commit SHA at closeout.
+resolution: Implemented and merged in PR #17 (commit f81b5fb) — extracted velumin-core (zero wasm-bindgen/web-sys/wgpu dependency), converted the repository into a Cargo workspace. scripts/smoke reported 9/9 checks at MAD 0.000 (zero visual regression). VectorDisplayPreset stayed in webgpu_vector_lib (wasm-bindgen-exportability constraint), an approved deviation from the item's literal Required Changes.
 expected_actions:
   - create_file
   - edit_file
