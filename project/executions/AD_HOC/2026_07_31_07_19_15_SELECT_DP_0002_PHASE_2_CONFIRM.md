@@ -67,3 +67,31 @@ exceptions remain open.
   against that post-push `HEAD`, plus a REVIEW-LANDED check (retrigger
   `@codex review` / `@copilot review` and wait for a response referencing
   the new SHA) before reporting a final merge-readiness verdict.
+
+## Step 8 — Post-push readiness (commit 520e64e), new finding surfaced
+
+Re-checked CI against the post-push `HEAD` (`520e64e`): initially pending
+(`validate`: `IN_PROGRESS`), resolved to `SUCCESS`.
+
+REVIEW-LANDED: retriggered both `@codex review` and `@copilot review`
+(`gh pr comment 18`). Codex responded on `520e64e` — but not a clean pass:
+a genuine new finding, `r3688765877` (P2, non-thread-adjacent — arrived as a
+fresh inline comment on the `_CONFIRM` commit itself), on
+`project/design/proposals/proposed/DP-0002-cross-platform-renderer-architecture.md:153`.
+The wording "following Phase 1's completion in `WI-ARCH-0001`" (also present
+in `project/memory/decision_log.md`) implied all of Phase 1 was done, when
+the same DP-0002 doc marks Phase 1 "Partially done" (the renderer/
+browser-adapter isolation bullet is not started) — a real, valid,
+in-scope catch, classified **Clear-satisfied-eligible** (a small wording
+fix, not a design disagreement).
+
+Per this skill's guidance ("a genuine new finding surfaced by the retrigger
+... is not pending, it is a new finding ... route it through Step 3's
+taxonomy and Steps 4-5"): fixed both instances in commit `dadf14c` (reworded
+to "following completion of `WI-ARCH-0001`", explicitly scoped to Phase 1's
+type-extraction slice only) and replied to the finding on GitHub.
+
+This produced a new `HEAD` (`dadf14c`); Step 8's CI and REVIEW-LANDED checks
+apply again to that commit before a final verdict can be reported.
+Copilot had not yet responded to the original retrigger by the time this
+new finding arrived; still pending as of this update.
