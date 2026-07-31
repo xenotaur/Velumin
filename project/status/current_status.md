@@ -30,7 +30,7 @@ health: yellow
 ## Active Priorities
 - Preserve the adopted DP-0001 baseline, DP-0004 validation workflow, DP-0005 demos, and DP-0006 renderer.
 - Preserve the adopted DP-0006 renderer, the WI-SMOKE-0001 smoke check, and the DP-0007 public preset API (implemented in WI-PRESET-0001).
-- Decide whether/when to build DP-0007's deferred public custom display-settings API, and select the next workstream (DP-0002 or DP-0003).
+- Decide whether/when to build DP-0007's deferred public custom display-settings API. DP-0002 Phase 2 (reusable, surface-agnostic `wgpu` renderer state) was selected as the active next workstream on 2026-07-31; no work item is scoped yet — that's the concrete next step.
 - Keep design proposal lifecycle metadata and directories aligned with what is merged.
 
 ## Risks
@@ -40,6 +40,5 @@ health: yellow
 
 ## Recommended Next Actions
 1. Decide whether to build DP-0007's deferred public custom display-settings API (a follow-up proposal/work item), or leave named presets as the v1 public surface.
-2. Select the next workstream — DP-0002 (cross-platform architecture) or DP-0003 (scene/material model).
-3. Select DP-0002 (architecture split) or DP-0003 (scene/material model) as the next workstream.
-4. Define the first public vector primitive or scene API target.
+2. Scope a work item for DP-0002 Phase 2 (reusable, surface-agnostic `wgpu` renderer state and desktop-side adapter/capability negotiation), now that it's the selected active workstream.
+3. Define the first public vector primitive or scene API target.

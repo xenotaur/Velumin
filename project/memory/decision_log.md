@@ -57,3 +57,45 @@
 ### Status
 - Accepted (scoped to WI-ARCH-0001 only)
 
+## 2026-07-31: Select DP-0002 Phase 2 as the active next workstream
+
+### Summary
+- The maintainer selected DP-0002 Phase 2 ("Modern Shared `wgpu` Renderer")
+  as the active next workstream, following Phase 1's completion in
+  `WI-ARCH-0001` (PR #17).
+
+### Decisions
+- DP-0002 Phase 2 — introducing a reusable renderer state that can render to
+  any supported `wgpu::Surface`, plus explicit desktop-side adapter/
+  capability negotiation — is now the selected direction for upcoming
+  rendering-architecture work.
+- This decision records selection only. No work item has been scoped for
+  Phase 2 yet, and no code has changed; scoping a concrete work item is a
+  separate, later step.
+- DP-0002 as a whole remains `status: proposed` (not adopted) — selecting one
+  phase as the active workstream is narrower than adopting the full proposal,
+  consistent with how Phase 1 was treated.
+- DP-0003 and DP-0002 Phase 3 (native `winit` shell) remain unselected,
+  proposed follow-up directions.
+
+### Rationale
+- Phase 1 (`WI-ARCH-0001`) extracted the platform-neutral type crate
+  (`velumin-core`) and left the renderer/browser-adapter split for a later
+  phase, reasoning that Phase 3 (native `winit`) should exist first to
+  validate that boundary. Phase 2 itself, however, is a prerequisite for
+  Phase 3 to exist at all — a surface-agnostic renderer state has to exist
+  before a native frontend can consume it — so selecting Phase 2 now moves
+  the concrete next step forward without contradicting Phase 1's deferral of
+  the deeper renderer/adapter crate split.
+
+### Uncertainty / Follow-ups
+- The exact crate boundary for Phase 2's renderer state (e.g. whether it
+  lands inside `webgpu_vector_lib` first or as a new `velumin-renderer-wgpu`
+  member) is not decided here; that is scope work for the first Phase 2 work
+  item.
+- Phase 3 (native `winit` shell) still requires its own explicit selection
+  before any native-desktop work begins, per the existing focus non-goal.
+
+### Status
+- Accepted
+
