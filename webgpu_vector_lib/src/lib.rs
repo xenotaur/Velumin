@@ -3,10 +3,48 @@ use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
 use velumin_core::RenderViewport;
 pub use velumin_core::{Color, Line, Polyline, StrokeStyle, Vec2, VectorCommand};
 use velumin_core::{GlowLayer, VectorDisplaySettings, lerp_vec2, stroke, transform_points};
+
+/// Platform-neutral error type for [`Renderer`] construction and rendering.
+/// Converted to `JsValue` only at the `WebGPU` wasm-bindgen boundary (see the
+/// `From<RendererError> for JsValue` impl below), so `Renderer` itself has no
+/// `wasm-bindgen` dependency in its own error surface.
+#[derive(Debug)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+struct RendererError(String);
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+impl RendererError {
+    fn new(message: impl Into<String>) -> Self {
+        Self(message.into())
+    }
+}
+
+impl std::fmt::Display for RendererError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for RendererError {}
+
+#[cfg(target_arch = "wasm32")]
+impl From<RendererError> for JsValue {
+    fn from(error: RendererError) -> Self {
+        JsValue::from_str(&error.0)
+    }
+}
+
+/// Log a diagnostic message from the renderer. A no-op on non-wasm32 hosts
+/// (no browser console to log to); forwards to the wasm-bindgen `console.log`
+/// binding on wasm32.
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code, unused_variables))]
+fn renderer_log(message: &str) {
+    #[cfg(target_arch = "wasm32")]
+    log(message);
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -15,12 +53,11 @@ struct Vertex {
     color: [f32; 4],
 }
 
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 impl Vertex {
-    #[cfg(target_arch = "wasm32")]
     const ATTRIBUTES: [wgpu::VertexAttribute; 2] =
         wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x4];
 
-    #[cfg(target_arch = "wasm32")]
     fn layout() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
@@ -41,8 +78,8 @@ struct GlowVertex {
     core_width: f32,
 }
 
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 impl GlowVertex {
-    #[cfg(target_arch = "wasm32")]
     const ATTRIBUTES: [wgpu::VertexAttribute; 6] = wgpu::vertex_attr_array![
         0 => Float32x2,
         1 => Float32x4,
@@ -52,7 +89,6 @@ impl GlowVertex {
         5 => Float32
     ];
 
-    #[cfg(target_arch = "wasm32")]
     fn layout() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
@@ -167,7 +203,7 @@ pub struct WebGPU {
     renderer: Renderer,
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -277,7 +313,9 @@ impl WebGPU {
         let window = web_sys::window().ok_or("No window available")?;
         let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
         self.renderer.resize(width, height);
-        self.renderer.render(&smoke_scene(), false)
+        self.renderer
+            .render(&smoke_scene(), false)
+            .map_err(JsValue::from)
     }
 
     #[wasm_bindgen]
@@ -288,6 +326,7 @@ impl WebGPU {
         let wrapped_time_ms = time_ms.rem_euclid(BLASTERITES_CYCLE_MS as f64) as f32;
         self.renderer
             .render(&blasterites_tester_scene(wrapped_time_ms), true)
+            .map_err(JsValue::from)
     }
 
     #[wasm_bindgen]
@@ -318,10 +357,11 @@ impl WebGPU {
         let wrapped_time_ms = time_ms.rem_euclid(BLASTERITES_CYCLE_MS as f64) as f32;
         self.renderer
             .render(&blasterites_tester_scene(wrapped_time_ms), true)
+            .map_err(JsValue::from)
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 impl Renderer {
     async fn new(
         surface: wgpu::Surface<'static>,
@@ -329,26 +369,26 @@ impl Renderer {
         width: u32,
         height: u32,
         preset: VectorDisplayPreset,
-    ) -> Result<Self, JsValue> {
+    ) -> Result<Self, RendererError> {
         let capabilities = surface.get_capabilities(adapter);
         let format = capabilities.formats.first().copied().ok_or_else(|| {
-            JsValue::from_str("The WebGPU adapter does not report any supported surface formats.")
+            RendererError::new("The WebGPU adapter does not report any supported surface formats.")
         })?;
         let alpha_mode = capabilities.alpha_modes.first().copied().ok_or_else(|| {
-            JsValue::from_str("The WebGPU adapter does not report any supported alpha modes.")
+            RendererError::new("The WebGPU adapter does not report any supported alpha modes.")
         })?;
         if !capabilities
             .present_modes
             .contains(&wgpu::PresentMode::Fifo)
         {
-            return Err(JsValue::from_str(
+            return Err(RendererError::new(
                 "The WebGPU adapter does not support the required FIFO presentation mode.",
             ));
         }
 
         let required_limits = wgpu::Limits::downlevel_defaults();
         if !required_limits.check_limits(&adapter.limits()) {
-            return Err(JsValue::from_str(
+            return Err(RendererError::new(
                 "The WebGPU adapter does not meet Velumin's required rendering limits.",
             ));
         }
@@ -364,12 +404,12 @@ impl Renderer {
             })
             .await
             .map_err(|e| {
-                JsValue::from_str(&format!(
+                RendererError::new(format!(
                     "Device request failed. Required WebGPU features or limits may be unavailable: {:?}",
                     e
                 ))
             })?;
-        log("Device and queue acquired");
+        renderer_log("Device and queue acquired");
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -382,7 +422,7 @@ impl Renderer {
             view_formats: vec![],
         };
         surface.configure(&device, &config);
-        log("Surface configured");
+        renderer_log("Surface configured");
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Line Shader"),
@@ -392,7 +432,7 @@ impl Renderer {
             label: Some("Glow Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/glow.wgsl").into()),
         });
-        log("Shader modules created");
+        renderer_log("Shader modules created");
 
         let crisp_pipeline = create_vector_pipeline(
             &device,
@@ -408,7 +448,7 @@ impl Renderer {
             additive_blend_state(),
             "Glow Bright-Pass Pipeline",
         );
-        log("Vector render pipelines created");
+        renderer_log("Vector render pipelines created");
 
         let composite_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Glow Composite Shader"),
@@ -465,7 +505,7 @@ impl Renderer {
             &composite_pipeline_layout,
             "Tester Composite Pipeline",
         );
-        log("Glow composite pipelines created");
+        renderer_log("Glow composite pipelines created");
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vector Vertex Buffer"),
@@ -497,7 +537,7 @@ impl Renderer {
                 &composite_bind_group_layout,
                 &glow_sampler,
             );
-        log(&format!(
+        renderer_log(&format!(
             "Glow target configured at {}x{}",
             glow_width, glow_height
         ));
@@ -550,23 +590,27 @@ impl Renderer {
         self.composite_bind_group = composite_bind_group;
         self.glow_width = glow_width;
         self.glow_height = glow_height;
-        log(&format!("Surface reconfigured to {}x{}", width, height));
+        renderer_log(&format!("Surface reconfigured to {}x{}", width, height));
     }
 
-    fn render(&mut self, commands: &[VectorCommand], tester_effects: bool) -> Result<(), JsValue> {
-        log("Starting render call");
+    fn render(
+        &mut self,
+        commands: &[VectorCommand],
+        tester_effects: bool,
+    ) -> Result<(), RendererError> {
+        renderer_log("Starting render call");
         self.upload_vector_commands(commands);
 
         let frame = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(frame)
             | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
             wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
-                return Err(JsValue::from_str(
+                return Err(RendererError::new(
                     "Surface texture is temporarily unavailable; try rendering again later.",
                 ));
             }
             status => {
-                return Err(JsValue::from_str(&format!(
+                return Err(RendererError::new(format!(
                     "Failed to get frame from WebGPU surface: {:?}",
                     status
                 )));
@@ -670,7 +714,7 @@ impl Renderer {
 
         self.queue.submit(std::iter::once(encoder.finish()));
         frame.present();
-        log("Frame submitted and presented");
+        renderer_log("Frame submitted and presented");
         Ok(())
     }
 
@@ -698,11 +742,11 @@ impl Renderer {
             &mut self.glow_vertex_buffer,
             &mut self.glow_vertex_capacity,
         );
-        log(&format!("Uploaded {} vector vertices", vertices.len()));
+        renderer_log(&format!("Uploaded {} vector vertices", vertices.len()));
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 fn create_glow_pipeline(
     device: &wgpu::Device,
     shader: &wgpu::ShaderModule,
@@ -751,7 +795,7 @@ fn create_glow_pipeline(
     })
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 fn create_vector_pipeline(
     device: &wgpu::Device,
     shader: &wgpu::ShaderModule,
@@ -800,7 +844,7 @@ fn create_vector_pipeline(
     })
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 fn additive_blend_state() -> wgpu::BlendState {
     wgpu::BlendState {
         color: wgpu::BlendComponent {
@@ -816,7 +860,7 @@ fn additive_blend_state() -> wgpu::BlendState {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 fn create_composite_pipeline(
     device: &wgpu::Device,
     shader: &wgpu::ShaderModule,
@@ -851,7 +895,7 @@ fn create_composite_pipeline(
     })
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 fn create_glow_target(
     device: &wgpu::Device,
     format: wgpu::TextureFormat,
@@ -895,7 +939,7 @@ fn create_glow_target(
     (texture, view, bind_group, glow_width, glow_height)
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 fn upload_vertices(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -923,7 +967,7 @@ fn upload_vertices(
     vertices.len() as u32
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 fn upload_glow_vertices(
     device: &wgpu::Device,
     queue: &wgpu::Queue,

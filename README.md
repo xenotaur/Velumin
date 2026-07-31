@@ -4,7 +4,7 @@ Velumin is a retro vector-graphics library.
 
 ## Repository Orientation
 
-Velumin is currently a Rust/WASM/WebGPU project with a Vite browser harness. The Rust code is a Cargo workspace of two crates (DP-0002 Phase 1): `velumin-core` (platform-neutral vector/scene/style types, no `wasm-bindgen`/`web-sys`/`wgpu` dependency) and `webgpu_vector_lib` (the `wgpu` renderer and browser adapter, depending on `velumin-core`). The repository also uses LRH-style project-control documents under `project/` to record intent, design decisions, evidence, current focus, and work items.
+Velumin is currently a Rust/WASM/WebGPU project with a Vite browser harness. The Rust code is a Cargo workspace of two crates: `velumin-core` (DP-0002 Phase 1: platform-neutral vector/scene/style types, no `wasm-bindgen`/`web-sys`/`wgpu` dependency) and `webgpu_vector_lib` (the `wgpu` renderer and browser adapter, depending on `velumin-core`). Within `webgpu_vector_lib`, the `Renderer` (DP-0002 Phase 2) is itself platform-neutral and host-buildable — it takes a generic `wgpu::Surface`/`Adapter` and its own error type has no `wasm-bindgen` dependency — while the `WebGPU` browser adapter (canvas lookup, resize-from-window) stays `wasm32`-gated. The repository also uses LRH-style project-control documents under `project/` to record intent, design decisions, evidence, current focus, and work items.
 
 Important entrypoints:
 
@@ -20,7 +20,7 @@ Important entrypoints:
 
 The current browser baseline is a Rust/WASM/Vite demo that renders a white line on a black canvas. Preserve this signal before changing renderer dependencies or architecture.
 
-The workspace currently requires Rust 1.87 or newer. The repository pins the local toolchain to Rust 1.87.0 through `rust-toolchain.toml` and uses `wasm32-unknown-unknown` for the browser WASM build. `velumin-core` builds and tests on the host target with no `wasm32` requirement; `webgpu_vector_lib` builds for both host (its pure-logic tests) and `wasm32-unknown-unknown` (the browser artifact).
+The workspace currently requires Rust 1.87 or newer. The repository pins the local toolchain to Rust 1.87.0 through `rust-toolchain.toml` and uses `wasm32-unknown-unknown` for the browser WASM build. `velumin-core` builds and tests on the host target with no `wasm32` requirement; `webgpu_vector_lib` builds for both host (its pure-logic tests, and now `Renderer` itself) and `wasm32-unknown-unknown` (the browser artifact, including the `WebGPU` browser adapter that stays wasm32-only).
 
 ## Display Presets
 
