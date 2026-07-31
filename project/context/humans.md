@@ -11,7 +11,7 @@
 ## Goals and Direction
 - Goal: create Velumin as a reusable retro vector-graphics library for game developers.
 - Near-term focus: DP-0006's renderer follow-ups (`WI-SMOKE-0001`, the DP-0007 public preset API) are done; keep the adopted DP-0001 baseline, DP-0004 validation workflow, and DP-0005 Blasterites demos stable while advancing DP-0002.
-- DP-0002 Phase 1 (platform-neutral type extraction) is done (`WI-ARCH-0001`); Phase 2 (reusable, surface-agnostic `wgpu` renderer state) was selected as the active next workstream on 2026-07-31 — the immediate next step is scoping its first work item. DP-0003 remains a later, unselected direction.
+- DP-0002 Phase 1's platform-neutral type-extraction slice is done (`WI-ARCH-0001`); Phase 1 as a whole remains partially done (the rename question and renderer/browser-adapter isolation are still open). Phase 2 (reusable, surface-agnostic `wgpu` renderer state) was selected as the active next workstream on 2026-07-31 — the immediate next step is scoping its first work item. DP-0003 remains a later, unselected direction.
 
 ## Design Snapshot
 - Authoritative intent lives in `principles/`, `goal/`, and `roadmap/`.
