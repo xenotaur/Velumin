@@ -149,11 +149,11 @@ Status tags below reflect the 2026-07-25 refresh plus the 2026-07-30 Phase 1 upd
 
 The command-type extraction is done; the renderer/browser-adapter split remains the concrete prerequisite for Phase 3.
 
-### Phase 2: Modern Shared `wgpu` Renderer — Selected (2026-07-31), Partially done (browser-only)
-- **Selected as the active next workstream 2026-07-31** (`project/memory/decision_log.md`), following completion of `WI-ARCH-0001` — Phase 1's platform-neutral type-extraction slice, not all of Phase 1 (this milestone is still "Partially done"; the renderer/browser-adapter isolation bullet below is not started). Its concrete first slice is scoped in [WI-ARCH-0002](../../../work_items/proposed/WI-ARCH-0002.md) (PR #19): make `Renderer` surface-agnostic and host-buildable. See `project/memory/decision_log.md` for scope notes on how this phase interacts with Phase 1's deferred renderer/browser-adapter split.
+### Phase 2: Modern Shared `wgpu` Renderer — Partially done (browser-only)
+- **Selected as the active next workstream 2026-07-31** (`project/memory/decision_log.md`), following completion of `WI-ARCH-0001` — Phase 1's platform-neutral type-extraction slice, not all of Phase 1 (this milestone is still "Partially done"; the renderer/browser-adapter isolation bullet below is not started). Its concrete first slice, [WI-ARCH-0002](../../../work_items/resolved/WI-ARCH-0002.md) (PR #20), is done: `Renderer` is now surface-agnostic and host-buildable. See `project/memory/decision_log.md` for scope notes on how this phase interacts with Phase 1's deferred renderer/browser-adapter split.
 - Complete the DP-0001 `wgpu` upgrade. — done (DP-0001 adopted).
-- Introduce a reusable renderer state that can render to any supported `wgpu::Surface`. — not done: `Renderer`/`WebGPU::create` in `webgpu_vector_lib/src/lib.rs` is constructed from a browser `HtmlCanvasElement` and is not surface-agnostic.
-- Add explicit adapter/capability negotiation for web and desktop. — web-side capability checks exist (missing/blocked WebGPU adapter handling); desktop-side negotiation does not exist (no native surface path at all).
+- Introduce a reusable renderer state that can render to any supported `wgpu::Surface`. — done: `WI-ARCH-0002` (PR #20) made `Renderer` compile and construct on the host target from a generic `wgpu::Surface`/`Adapter`, with a platform-neutral error type and logging shim; `WebGPU` (the browser-specific canvas/adapter setup) stays `wasm32`-gated separately.
+- Add explicit adapter/capability negotiation for web and desktop. — web-side capability checks exist (missing/blocked WebGPU adapter handling); desktop-side negotiation does not exist (no native surface path at all — `WI-ARCH-0002` explicitly did not add this, since there is no native host to negotiate against yet).
 
 ### Phase 3: Native `winit` Shell — Not started
 - No `winit` dependency exists in `webgpu_vector_lib/Cargo.toml`, and no desktop example or binary exists in the repository. All bullets in this phase remain as originally scoped.
