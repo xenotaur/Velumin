@@ -1,6 +1,6 @@
 ---
 id: FOCUS-RENDER-0001
-title: Vector CRT Renderer Focus
+title: Vector Renderer & Cross-Platform Architecture Focus
 status: active
 priority: high
 owner: project maintainers

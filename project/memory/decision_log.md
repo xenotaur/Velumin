@@ -66,9 +66,9 @@
 
 ### Decisions
 - DP-0002 Phase 2 — introducing a reusable renderer state that can render to
-  any supported `wgpu::Surface`, plus explicit desktop-side adapter/
-  capability negotiation — is now the selected direction for upcoming
-  rendering-architecture work.
+  any supported `wgpu::Surface`, plus explicit desktop-side
+  adapter/capability negotiation — is now the selected direction for
+  upcoming rendering-architecture work.
 - This decision records selection only. No work item has been scoped for
   Phase 2 yet, and no code has changed; scoping a concrete work item is a
   separate, later step.
