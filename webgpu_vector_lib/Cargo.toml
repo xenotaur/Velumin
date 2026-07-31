@@ -5,6 +5,7 @@ edition = "2024"
 rust-version = "1.87"
 
 [dependencies]
+velumin-core = { path = "../velumin-core" }
 bytemuck = { version = "1.13", features = ["derive"] }
 console_error_panic_hook = "0.1"  # Improves debugging of Rust WASM panics
 js-sys = "0.3"

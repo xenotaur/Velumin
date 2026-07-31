@@ -78,9 +78,11 @@ Prints versions for:
 
 Use this first when debugging validation failures. Missing or mismatched tools usually indicate setup/bootstrap mismatch rather than code regression.
 
+The repository is a Cargo workspace (root `Cargo.toml`) of two crates: `velumin-core` (platform-neutral vector/scene/style types, no `wasm-bindgen`/`web-sys`/`wgpu` dependency) and `webgpu_vector_lib` (the `wgpu` renderer and browser adapter, depending on `velumin-core`). `scripts/format`, `scripts/lint`, and `scripts/test` operate against the workspace root manifest, covering both crates in one pass.
+
 ### `scripts/format`
 
-Runs rustfmt against `webgpu_vector_lib/Cargo.toml`.
+Runs rustfmt against the workspace root `Cargo.toml` (all members).
 
 Use `scripts/format --check` in validation and review repair. Use `scripts/format` when intentionally applying formatter output.
 
@@ -89,18 +91,20 @@ Use `scripts/format --check` in validation and review repair. Use `scripts/forma
 Runs:
 
 ```sh
-cargo clippy --manifest-path webgpu_vector_lib/Cargo.toml --target wasm32-unknown-unknown --all-targets -- -D warnings
+cargo clippy --manifest-path Cargo.toml --target wasm32-unknown-unknown --all-targets -- -D warnings
 ```
 
-Warnings are treated as errors to keep CI strict and deterministic.
+Warnings are treated as errors to keep CI strict and deterministic. `velumin-core` has no `wasm32`-specific dependencies, so it compiles cleanly for this target alongside `webgpu_vector_lib`.
 
 ### `scripts/test`
 
-Runs Rust tests through the crate manifest:
+Runs Rust tests for the whole workspace, on the host target:
 
 ```sh
-cargo test --manifest-path webgpu_vector_lib/Cargo.toml
+cargo test --manifest-path Cargo.toml
 ```
+
+`velumin-core`'s tests run and pass here with no `wasm32` target required, satisfying its own acceptance criterion independently of `webgpu_vector_lib`.
 
 ### `scripts/baseline`
 

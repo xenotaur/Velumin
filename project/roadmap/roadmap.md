@@ -42,6 +42,7 @@ owner: project maintainers
 - After the Vector CRT renderer stabilizes, split Velumin toward a platform-neutral core, shared `wgpu` renderer, browser frontend, and later native desktop frontend.
 - Keep the same vector command and renderer model usable by browser and desktop targets where possible.
 - Treat native `winit` work as a staged architecture milestone, not as a blocker for browser work.
+- Phase 1's platform-neutral type extraction is done: the repository is now a Cargo workspace with a `velumin-core` crate (`WI-ARCH-0001`, PR #17). The renderer/browser-adapter split and native `winit` shell (Phases 2/3) remain future work.
 
 ## Later Directions
 - Add a native `winit` shell that renders the same smoke and tester scenes through the shared renderer.
