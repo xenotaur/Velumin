@@ -72,7 +72,7 @@ DP-0002 Phase 2 calls for "a reusable renderer state that can render to any supp
 ## Required Changes
 1. Define a platform-neutral error type (e.g. a local `RendererError` enum implementing `std::error::Error` or similar) to replace `JsValue` as the return-error type on `Renderer::new` and `Renderer::render`. Convert to `JsValue` only at the `WebGPU` wasm-bindgen boundary (`WebGPU::create_with_preset`, `WebGPU::render`, `WebGPU::render_blasterites_tester`, `WebGPU::render_blasterites_tuner`).
 2. Replace `Renderer`'s internal `log(...)` calls (currently the wasm-bindgen `console.log` extern binding) with a platform-neutral logging call (e.g. gated behind a small `#[cfg(target_arch = "wasm32")]` shim, or a no-op on host), so `Renderer`'s `impl` block itself has no `wasm_bindgen`/`web_sys` dependency.
-3. Remove the `#[cfg(target_arch = "wasm32")]` gate from the `Renderer` struct and its `impl Renderer` block so both compile on the host target.
+3. Remove the `#[cfg(target_arch = "wasm32")]` gate from the `Renderer` struct and its `impl Renderer` block, **and** from every other item `Renderer` depends on that is currently wasm32-gated: `Vertex::layout`/`GlowVertex::layout`, and the free functions `create_vector_pipeline`, `create_glow_pipeline`, `create_composite_pipeline`, `create_glow_target`, `upload_vertices`, and `upload_glow_vertices` (`webgpu_vector_lib/src/lib.rs`). Removing the gate from `Renderer` alone is not sufficient — it calls into all of these, so the host build would still fail without ungating them too.
 4. Keep `WebGPU`'s canvas lookup, `wgpu::SurfaceTarget::Canvas` surface creation, and `resize_canvas_to_display_size` (browser-specific, uses `web_sys::window`) wasm32-gated exactly as today; `WebGPU::create_with_preset` calls into the now-portable `Renderer::new`.
 5. Update `README.md` / `scripts/README.md` if their platform-neutral/wasm32-gated boundary description needs adjustment to reflect that `Renderer` (not just `velumin-core`) now builds on the host target.
 
@@ -104,6 +104,7 @@ DP-0002 Phase 2 calls for "a reusable renderer state that can render to any supp
 - The refactor touches every call site inside `Renderer`'s ~250-line `impl` block (many `log(...)` calls, several `JsValue::from_str` error returns) — mitigated by compiling for both host and `wasm32` targets after each change and running `scripts/smoke` before/after to catch any accidental behavior change.
 - `Renderer::render` is a large function reused by all three render entrypoints (`render`, `render_blasterites_tester`, `render_blasterites_tuner`); a mistake in the log/error-type swap could silently affect all three.
 - Removing the `wasm32` gate could surface latent host-only compile errors (e.g. `wgpu` backend availability assumptions) not visible today since `Renderer` has never been host-compiled.
+- `Renderer`'s dependency graph reaches several other wasm32-gated items (`Vertex::layout`, `GlowVertex::layout`, and the pipeline/upload helper functions); ungating only `Renderer` itself is not sufficient, and missing one of these dependencies would surface as a host build failure rather than a silent behavior change.
 
 ## Related Workstream and Designs
 - Design: `project/design/proposals/proposed/DP-0002-cross-platform-renderer-architecture.md` (Phase 2: Modern Shared `wgpu` Renderer)
