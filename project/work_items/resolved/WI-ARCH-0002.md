@@ -2,7 +2,7 @@
 id: WI-ARCH-0002
 title: Make the wgpu Renderer Surface-Agnostic and Host-Buildable (DP-0002 Phase 2)
 type: deliverable
-status: proposed
+status: resolved
 priority: medium
 owner: project maintainers
 assigned_agents: []
@@ -17,7 +17,7 @@ depends_on: []
 blocked_by: []
 blocked: false
 blocked_reason: null
-resolution: null
+resolution: Implemented in PR #20 (https://github.com/xenotaur/Velumin/pull/20) — made webgpu_vector_lib's Renderer compile and construct on the host target: replaced JsValue with a platform-neutral RendererError (converted to JsValue only at the WebGPU wasm-bindgen boundary), replaced direct log(...) calls with a platform-neutral renderer_log shim, and removed the wasm32 gate from Renderer and every item in its dependency chain (the RenderViewport import, Vertex/GlowVertex's ATTRIBUTES/layout(), and 6 pipeline/upload helper functions). scripts/smoke reported 9/9 checks at MAD 0.000 (zero visual regression). Resolution will be updated with the merge commit SHA at closeout.
 expected_actions:
   - edit_file
   - run_tests

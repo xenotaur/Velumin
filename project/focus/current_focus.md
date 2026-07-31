@@ -9,19 +9,19 @@ owner: project maintainers
 # Current Focus
 
 ## Active Priority
-- The DP-0006 renderer follow-ups are done (the WI-SMOKE-0001 smoke check and the DP-0007 public preset API landed). Keep the adopted renderer, demos, and validation workflow stable. DP-0002 Phase 2 (reusable, surface-agnostic `wgpu` renderer state) was selected as the active next workstream on 2026-07-31; its first work item, `WI-ARCH-0002`, is scoped (PR #19) and awaits implementation.
+- The DP-0006 renderer follow-ups are done (the WI-SMOKE-0001 smoke check and the DP-0007 public preset API landed). Keep the adopted renderer, demos, and validation workflow stable. DP-0002 Phase 2's reusable, surface-agnostic `wgpu` renderer state is done (`WI-ARCH-0002`, PR #20); desktop-side adapter/capability negotiation (the rest of Phase 2) has no work item scoped yet.
 
 ## Why This Appears Current
 - The LRH control plane is bootstrapped and `WI-BOOTSTRAP-0001` is done.
 - DP-0001 (WebGPU baseline) and DP-0004 (validation workflow) are adopted and implemented.
 - DP-0005 (Blasterites tester and tuner demos) is adopted and implemented (`WI-DEMO-0001`, merged across PRs #3-#6).
 - DP-0006 (Vector CRT renderer migration) was adopted on 2026-07-24 and is partially implemented: the fixed 4:3 viewport, additive multi-layer glow, and a display-preset set have landed alongside the demos, validated by code inspection (EV-0008) and browser visual-smoke capture (EV-0009). Its follow-ups have landed — the `WI-SMOKE-0001` smoke check and the DP-0007 public preset API (`WI-PRESET-0001`).
-- DP-0002's Phase 1 platform-neutral type extraction landed: `WI-ARCH-0001` (PR #17) converted the repository into a Cargo workspace with a `velumin-core` crate, with zero visual regression (`scripts/smoke`, 9/9 checks at MAD 0.000). Phase 2 (reusable, surface-agnostic `wgpu` renderer state) was selected as the active next workstream on 2026-07-31 (`project/memory/decision_log.md`); its first work item, `WI-ARCH-0002`, is scoped (PR #19).
+- DP-0002's Phase 1 platform-neutral type extraction landed: `WI-ARCH-0001` (PR #17) converted the repository into a Cargo workspace with a `velumin-core` crate, with zero visual regression (`scripts/smoke`, 9/9 checks at MAD 0.000). Phase 2's reusable, surface-agnostic `wgpu` renderer state also landed: `WI-ARCH-0002` (PR #20) made `Renderer` host-buildable, with zero visual regression (`scripts/smoke`, 9/9 checks at MAD 0.000). Desktop-side adapter/capability negotiation, the rest of Phase 2, has no work item scoped yet.
 
 ## Priorities
 1. Preserve the WebGPU browser rendering baseline, the `scripts/validate` contract, and the Blasterites demo routes.
 2. Maintain the `WI-SMOKE-0001` smoke check (`scripts/smoke`, done — covers baseline/tester/tuner at 4:3/wide/tall and the four display presets).
-3. Decide whether to build DP-0007's deferred public custom display-settings API (the public preset API itself is implemented, `WI-PRESET-0001`). Implement `WI-ARCH-0002` (DP-0002 Phase 2's scoped first slice); Phase 3 (native `winit` shell) still awaits its own selection.
+3. Decide whether to build DP-0007's deferred public custom display-settings API (the public preset API itself is implemented, `WI-PRESET-0001`). `WI-ARCH-0002` (DP-0002 Phase 2's first slice) is implemented; desktop-side adapter/capability negotiation (Phase 2's remaining bullet) and Phase 3 (native `winit` shell) still await their own work item / selection.
 4. Keep adopted design, work items, roadmap, focus, and evidence aligned with what is merged.
 
 ## Non-Goals
