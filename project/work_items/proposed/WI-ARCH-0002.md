@@ -28,7 +28,7 @@ forbidden_actions:
   - extract_renderer_crate
   - change_rendered_output
 acceptance:
-  - Renderer (and its new/render/resize methods) compiles and its own unit tests run on the host target without requiring --target wasm32-unknown-unknown
+  - Renderer (and its new/render/resize methods) compiles on the host target without requiring --target wasm32-unknown-unknown, and scripts/test runs cleanly there
   - Renderer's error type is no longer JsValue
   - webgpu_vector_lib's wasm-bindgen-exported WebGPU type still compiles for wasm32-unknown-unknown and its behavior (browser demos, presets) is unchanged
   - scripts/smoke reports actual per-scene captures matching committed reference signatures (MAD ~0.000), not a SKIP exit
@@ -53,13 +53,13 @@ Refactor `webgpu_vector_lib`'s `Renderer` so it compiles and constructs on the h
 DP-0002 Phase 2 calls for "a reusable renderer state that can render to any supported `wgpu::Surface`" and "explicit adapter/capability negotiation for web and desktop." Today, `Renderer` (`webgpu_vector_lib/src/lib.rs`) already takes a generic `wgpu::Surface<'static>` and `&wgpu::Adapter` as constructor parameters — but its `struct` and `impl` block are gated `#[cfg(target_arch = "wasm32")]`, and its own error type is `JsValue` (a wasm-bindgen type), with browser `console.log` calls (`log(...)`) scattered through construction and rendering. This means `Renderer` cannot compile, let alone be constructed or tested, on a host/native target today — a prerequisite gap DP-0002 Phase 3 (native `winit` shell) cannot be built against until it's closed. Phase 2 was selected as the active next workstream on 2026-07-31 (`project/memory/decision_log.md`), following Phase 1's completion in `WI-ARCH-0001` (PR #17, which extracted the platform-neutral `velumin-core` type crate but explicitly deferred the renderer/browser-adapter split to a later phase).
 
 ### Duplication search
-- In-repo: No existing implementation found. `WI-ARCH-0001` and `WI-RENDER-0003` both explicitly defer this exact work ("separate browser-specific setup from reusable renderer state") to a future item.
+- In-repo: No existing implementation found. `WI-RENDER-0003` (resolved) already separated browser-specific setup (canvas lookup, DPR, logging) from renderer state *within* `webgpu_vector_lib` — but that renderer state remains `wasm32`-gated with a `JsValue` error type, so no host-buildable `Renderer` exists yet. `WI-ARCH-0001` explicitly deferred the deeper renderer/browser-adapter crate split to a future phase.
 - Sibling repos: None identified.
 - External libraries: None identified.
 - Recommendation: Proceed.
 
 ### Demand search
-- Work items: `WI-ARCH-0001` (resolved) and `WI-RENDER-0003` (resolved) both name this as deferred, unsatisfied work.
+- Work items: `WI-ARCH-0001` (resolved) explicitly defers the renderer/browser-adapter crate split; `WI-RENDER-0003` (resolved) implemented the in-crate separation of concerns this item builds on, but did not make `Renderer` host-buildable.
 - Proposals: DP-0002 (proposed) — Phase 2 "Modern Shared `wgpu` Renderer" is the direct source of this item.
 - Backlog: No matching entries.
 - Recommendation: No action.
@@ -84,7 +84,7 @@ DP-0002 Phase 2 calls for "a reusable renderer state that can render to any supp
 - Do not change any rendered visual output — this is a structural/portability refactor only, validated by `scripts/smoke`.
 
 ## Acceptance Criteria
-- `Renderer` (and its `new`/`render`/`resize` methods) compiles and its own unit tests run on the host target without requiring `--target wasm32-unknown-unknown`.
+- `Renderer` (and its `new`/`render`/`resize` methods) compiles on the host target without requiring `--target wasm32-unknown-unknown`, and `scripts/test` runs cleanly there.
 - `Renderer`'s error type is no longer `JsValue`.
 - `webgpu_vector_lib`'s wasm-bindgen-exported `WebGPU` type still compiles for `wasm32-unknown-unknown` and its behavior (browser demos, presets) is unchanged.
 - `scripts/smoke` reports actual per-scene captures matching the committed reference signatures (MAD ~0.000). A `SKIP` exit does not satisfy this criterion.
