@@ -95,3 +95,44 @@ This produced a new `HEAD` (`dadf14c`); Step 8's CI and REVIEW-LANDED checks
 apply again to that commit before a final verdict can be reported.
 Copilot had not yet responded to the original retrigger by the time this
 new finding arrived; still pending as of this update.
+
+## Step 8 — Iterative re-review rounds (commits dadf14c, f58e6a9, 18c2c86, 4e6d3f3)
+
+The retrigger-and-fix cycle above repeated four more times, each surfacing
+one further genuine finding on the freshly pushed commit — all instances of
+the same underlying pattern (a "Phase 1 is done" claim that read as closing
+the whole milestone, when only Phase 1's type-extraction slice is done):
+
+- `dadf14c` (fix for `r3688765877`) → re-review surfaced `r3688793837` (P2):
+  a third instance of the same wording in the primary execution record
+  (`2026_07_31_04_29_19_SELECT_DP_0002_PHASE_2.md`), pre-merge authoring so
+  editable. Fixed in `f58e6a9`.
+- `f58e6a9` → re-review surfaced `r3688887062` (P2): `project/context/humans.md`
+  (a derived-context file, not directly touched by this PR until now) still
+  described DP-0006 follow-ups as the near-term focus and `WI-SMOKE-0001` as
+  the immediate next step — stale relative to this PR's own control-plane
+  updates. Fixed in `18c2c86`.
+- `18c2c86` → re-review surfaced `r3688929982` (P2): the `humans.md` fix
+  itself reintroduced the same "Phase 1 ... is done" ambiguity. Before
+  fixing, swept every other touched file (`grep` for the pattern) and
+  confirmed the rest were already precisely scoped. Fixed in `4e6d3f3`.
+- `4e6d3f3` → Codex clean pass ("Didn't find any major issues"). No further
+  findings.
+
+Each round replied to its finding on GitHub and re-ran CI (green each time)
+before retriggering the next review pass, per this skill's requirement that
+a genuine new finding on a `_CONFIRM` commit is handled through the same
+taxonomy/fix/re-verify cycle, not treated as pending.
+
+REVIEW-LANDED, final state: Codex clean-passed commit `4e6d3f3`
+(2026-07-31T08:02:53Z, "Didn't find any major issues"). Copilot had not
+posted a fresh review since its first pass (on `b638a17`, before any fixes)
+despite five retriggers across this cycle. Asked the user directly per this
+skill's "ask, don't infer" rule; user chose to treat their own confirmation
+as the review signal standing in for Copilot, consistent with the same
+decision on PR #17's confirm-fixes run.
+
+**Final verdict: Green.** All 3 original threads resolved (Step 6, green);
+CI green on `4e6d3f3`; REVIEW-LANDED satisfied (Codex clean pass + Copilot
+stand-in per user authorization); no exceptions remain open — every finding
+surfaced during re-review was fixed, not surfaced-and-skipped.
