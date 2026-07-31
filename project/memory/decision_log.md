@@ -61,8 +61,10 @@
 
 ### Summary
 - The maintainer selected DP-0002 Phase 2 ("Modern Shared `wgpu` Renderer")
-  as the active next workstream, following Phase 1's completion in
-  `WI-ARCH-0001` (PR #17).
+  as the active next workstream, following completion of `WI-ARCH-0001`
+  (PR #17) — Phase 1's platform-neutral type-extraction slice, not all of
+  Phase 1 (the renderer/browser-adapter isolation bullet is still not
+  started; see DP-0002's own Phase 1 milestone, "Partially done").
 
 ### Decisions
 - DP-0002 Phase 2 — introducing a reusable renderer state that can render to
