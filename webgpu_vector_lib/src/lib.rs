@@ -11,20 +11,64 @@ use velumin_core::{GlowLayer, VectorDisplaySettings, lerp_vec2, stroke, transfor
 /// Converted to `JsValue` only at the `WebGPU` wasm-bindgen boundary (see the
 /// `From<RendererError> for JsValue` impl below), so `Renderer` itself has no
 /// `wasm-bindgen` dependency in its own error surface.
+///
+/// Each variant's [`Display`](std::fmt::Display) arm owns its *entire*
+/// message text, including any debug-formatting of dynamic data — the call
+/// site only ever supplies a raw value, never a pre-formatted `String`. The
+/// one exception is [`DeviceRequestFailed`](Self::DeviceRequestFailed):
+/// `wgpu::RequestDeviceError`'s only field is `pub(crate)` with no public
+/// constructor, so it cannot be stored and later re-Debug-formatted from
+/// outside `wgpu`, nor constructed directly in a unit test. That variant
+/// therefore stores the already-Debug-formatted `String` the call site
+/// produces, accepting the same call-site-formatting-drift risk the other
+/// variants deliberately avoid, because there is no alternative available.
 #[derive(Debug)]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-struct RendererError(String);
-
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-impl RendererError {
-    fn new(message: impl Into<String>) -> Self {
-        Self(message.into())
-    }
+enum RendererError {
+    UnsupportedSurfaceFormat,
+    UnsupportedAlphaMode,
+    MissingPresentMode,
+    InsufficientLimits,
+    /// See the type-level doc comment: `wgpu::RequestDeviceError` cannot be
+    /// stored directly (no public constructor), so this carries the
+    /// call site's `format!("{:?}", e)` output instead.
+    DeviceRequestFailed(String),
+    SurfaceTextureUnavailable,
+    FrameAcquisitionFailed(wgpu::CurrentSurfaceTexture),
 }
 
 impl std::fmt::Display for RendererError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        match self {
+            Self::UnsupportedSurfaceFormat => write!(
+                f,
+                "The WebGPU adapter does not report any supported surface formats."
+            ),
+            Self::UnsupportedAlphaMode => write!(
+                f,
+                "The WebGPU adapter does not report any supported alpha modes."
+            ),
+            Self::MissingPresentMode => write!(
+                f,
+                "The WebGPU adapter does not support the required FIFO presentation mode."
+            ),
+            Self::InsufficientLimits => write!(
+                f,
+                "The WebGPU adapter does not meet Velumin's required rendering limits."
+            ),
+            Self::DeviceRequestFailed(debug_text) => write!(
+                f,
+                "Device request failed. Required WebGPU features or limits may be unavailable: {}",
+                debug_text
+            ),
+            Self::SurfaceTextureUnavailable => write!(
+                f,
+                "Surface texture is temporarily unavailable; try rendering again later."
+            ),
+            Self::FrameAcquisitionFailed(status) => {
+                write!(f, "Failed to get frame from WebGPU surface: {:?}", status)
+            }
+        }
     }
 }
 
@@ -33,7 +77,7 @@ impl std::error::Error for RendererError {}
 #[cfg(target_arch = "wasm32")]
 impl From<RendererError> for JsValue {
     fn from(error: RendererError) -> Self {
-        JsValue::from_str(&error.0)
+        JsValue::from_str(&error.to_string())
     }
 }
 
@@ -371,26 +415,26 @@ impl Renderer {
         preset: VectorDisplayPreset,
     ) -> Result<Self, RendererError> {
         let capabilities = surface.get_capabilities(adapter);
-        let format = capabilities.formats.first().copied().ok_or_else(|| {
-            RendererError::new("The WebGPU adapter does not report any supported surface formats.")
-        })?;
-        let alpha_mode = capabilities.alpha_modes.first().copied().ok_or_else(|| {
-            RendererError::new("The WebGPU adapter does not report any supported alpha modes.")
-        })?;
+        let format = capabilities
+            .formats
+            .first()
+            .copied()
+            .ok_or(RendererError::UnsupportedSurfaceFormat)?;
+        let alpha_mode = capabilities
+            .alpha_modes
+            .first()
+            .copied()
+            .ok_or(RendererError::UnsupportedAlphaMode)?;
         if !capabilities
             .present_modes
             .contains(&wgpu::PresentMode::Fifo)
         {
-            return Err(RendererError::new(
-                "The WebGPU adapter does not support the required FIFO presentation mode.",
-            ));
+            return Err(RendererError::MissingPresentMode);
         }
 
         let required_limits = wgpu::Limits::downlevel_defaults();
         if !required_limits.check_limits(&adapter.limits()) {
-            return Err(RendererError::new(
-                "The WebGPU adapter does not meet Velumin's required rendering limits.",
-            ));
+            return Err(RendererError::InsufficientLimits);
         }
 
         let (device, queue) = adapter
@@ -403,12 +447,7 @@ impl Renderer {
                 trace: wgpu::Trace::Off,
             })
             .await
-            .map_err(|e| {
-                RendererError::new(format!(
-                    "Device request failed. Required WebGPU features or limits may be unavailable: {:?}",
-                    e
-                ))
-            })?;
+            .map_err(|e| RendererError::DeviceRequestFailed(format!("{:?}", e)))?;
         renderer_log("Device and queue acquired");
 
         let config = wgpu::SurfaceConfiguration {
@@ -605,15 +644,10 @@ impl Renderer {
             wgpu::CurrentSurfaceTexture::Success(frame)
             | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
             wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
-                return Err(RendererError::new(
-                    "Surface texture is temporarily unavailable; try rendering again later.",
-                ));
+                return Err(RendererError::SurfaceTextureUnavailable);
             }
             status => {
-                return Err(RendererError::new(format!(
-                    "Failed to get frame from WebGPU surface: {:?}",
-                    status
-                )));
+                return Err(RendererError::FrameAcquisitionFailed(status));
             }
         };
         let view = frame
@@ -1427,6 +1461,38 @@ fn resize_canvas_to_display_size(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn renderer_error_display_text_matches_exactly() {
+        assert_eq!(
+            RendererError::UnsupportedSurfaceFormat.to_string(),
+            "The WebGPU adapter does not report any supported surface formats."
+        );
+        assert_eq!(
+            RendererError::UnsupportedAlphaMode.to_string(),
+            "The WebGPU adapter does not report any supported alpha modes."
+        );
+        assert_eq!(
+            RendererError::MissingPresentMode.to_string(),
+            "The WebGPU adapter does not support the required FIFO presentation mode."
+        );
+        assert_eq!(
+            RendererError::InsufficientLimits.to_string(),
+            "The WebGPU adapter does not meet Velumin's required rendering limits."
+        );
+        assert_eq!(
+            RendererError::DeviceRequestFailed("some debug text".to_string()).to_string(),
+            "Device request failed. Required WebGPU features or limits may be unavailable: some debug text"
+        );
+        assert_eq!(
+            RendererError::SurfaceTextureUnavailable.to_string(),
+            "Surface texture is temporarily unavailable; try rendering again later."
+        );
+        assert_eq!(
+            RendererError::FrameAcquisitionFailed(wgpu::CurrentSurfaceTexture::Lost).to_string(),
+            "Failed to get frame from WebGPU surface: Lost"
+        );
+    }
 
     fn white_style(width: f32) -> StrokeStyle {
         StrokeStyle {
