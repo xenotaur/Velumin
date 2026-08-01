@@ -14,14 +14,13 @@ use velumin_core::{GlowLayer, VectorDisplaySettings, lerp_vec2, stroke, transfor
 ///
 /// Each variant's [`Display`](std::fmt::Display) arm owns its *entire*
 /// message text, including any debug-formatting of dynamic data — the call
-/// site only ever supplies a raw value, never a pre-formatted `String`. The
-/// one exception is [`DeviceRequestFailed`](Self::DeviceRequestFailed):
-/// `wgpu::RequestDeviceError`'s only field is `pub(crate)` with no public
-/// constructor, so it cannot be stored and later re-Debug-formatted from
-/// outside `wgpu`, nor constructed directly in a unit test. That variant
-/// therefore stores the already-Debug-formatted `String` the call site
-/// produces, accepting the same call-site-formatting-drift risk the other
-/// variants deliberately avoid, because there is no alternative available.
+/// site only ever supplies the raw value it received, never a pre-formatted
+/// `String`. [`DeviceRequestFailed`](Self::DeviceRequestFailed) stores the
+/// real `wgpu::RequestDeviceError` it was handed, so production formatting
+/// can never drift from `Display`; the type has no public constructor, so
+/// it can't be *fabricated* for a unit test, which is why the static
+/// wording is factored into [`device_request_failed_message`] and tested
+/// through that helper instead of through the variant directly.
 #[derive(Debug)]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 enum RendererError {
@@ -29,12 +28,21 @@ enum RendererError {
     UnsupportedAlphaMode,
     MissingPresentMode,
     InsufficientLimits,
-    /// See the type-level doc comment: `wgpu::RequestDeviceError` cannot be
-    /// stored directly (no public constructor), so this carries the
-    /// call site's `format!("{:?}", e)` output instead.
-    DeviceRequestFailed(String),
+    DeviceRequestFailed(wgpu::RequestDeviceError),
     SurfaceTextureUnavailable,
     FrameAcquisitionFailed(wgpu::CurrentSurfaceTexture),
+}
+
+/// The static wording around a device-request failure, factored out of
+/// [`RendererError`]'s `Display` impl so it can be unit tested with a
+/// synthetic debug string — `wgpu::RequestDeviceError` itself has no public
+/// constructor and can't be fabricated for a test.
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn device_request_failed_message(debug_text: impl std::fmt::Display) -> String {
+    format!(
+        "Device request failed. Required WebGPU features or limits may be unavailable: {}",
+        debug_text
+    )
 }
 
 impl std::fmt::Display for RendererError {
@@ -56,11 +64,9 @@ impl std::fmt::Display for RendererError {
                 f,
                 "The WebGPU adapter does not meet Velumin's required rendering limits."
             ),
-            Self::DeviceRequestFailed(debug_text) => write!(
-                f,
-                "Device request failed. Required WebGPU features or limits may be unavailable: {}",
-                debug_text
-            ),
+            Self::DeviceRequestFailed(e) => {
+                write!(f, "{}", device_request_failed_message(format!("{:?}", e)))
+            }
             Self::SurfaceTextureUnavailable => write!(
                 f,
                 "Surface texture is temporarily unavailable; try rendering again later."
@@ -447,7 +453,7 @@ impl Renderer {
                 trace: wgpu::Trace::Off,
             })
             .await
-            .map_err(|e| RendererError::DeviceRequestFailed(format!("{:?}", e)))?;
+            .map_err(RendererError::DeviceRequestFailed)?;
         renderer_log("Device and queue acquired");
 
         let config = wgpu::SurfaceConfiguration {
@@ -1481,16 +1487,25 @@ mod tests {
             "The WebGPU adapter does not meet Velumin's required rendering limits."
         );
         assert_eq!(
-            RendererError::DeviceRequestFailed("some debug text".to_string()).to_string(),
-            "Device request failed. Required WebGPU features or limits may be unavailable: some debug text"
-        );
-        assert_eq!(
             RendererError::SurfaceTextureUnavailable.to_string(),
             "Surface texture is temporarily unavailable; try rendering again later."
         );
         assert_eq!(
             RendererError::FrameAcquisitionFailed(wgpu::CurrentSurfaceTexture::Lost).to_string(),
             "Failed to get frame from WebGPU surface: Lost"
+        );
+    }
+
+    #[test]
+    fn device_request_failed_message_wraps_the_debug_text() {
+        // wgpu::RequestDeviceError has no public constructor, so it can't be
+        // fabricated to test RendererError::DeviceRequestFailed's Display arm
+        // directly; this tests the same static wording via the helper that
+        // arm delegates to, with a synthetic debug string standing in for a
+        // real error's {:?} output.
+        assert_eq!(
+            device_request_failed_message("some debug text"),
+            "Device request failed. Required WebGPU features or limits may be unavailable: some debug text"
         );
     }
 
