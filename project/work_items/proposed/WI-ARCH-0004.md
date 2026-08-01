@@ -27,8 +27,8 @@ forbidden_actions:
   - implement_native_surface_acquisition
   - change_rendered_output
 acceptance:
-  - DP-0002 Phase 2's milestone list no longer includes desktop-side adapter/capability negotiation as one of its own bullets
-  - DP-0002 Phase 3's milestone list explicitly includes desktop-side adapter/capability negotiation as one of its own bullets
+  - DP-0002 Phase 2's milestone list no longer includes desktop-side adapter/capability negotiation as one of its own bullets, and its retained web-side negotiation bullet is marked done
+  - DP-0002 Phase 3's milestone list explicitly includes desktop-side adapter/capability negotiation as one of its own bullets, with a note that it moved from Phase 2 on 2026-08-01
   - The "Unresolved sequencing circularity" note in DP-0002 is resolved, replaced with a brief historical pointer to the decision log
   - DP-0002 Phase 2's status label reads "Done (browser-only)"
   - project/memory/decision_log.md records the reordering decision and rationale
