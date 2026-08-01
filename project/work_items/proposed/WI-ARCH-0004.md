@@ -30,7 +30,9 @@ acceptance:
   - DP-0002 Phase 2's milestone list no longer includes desktop-side adapter/capability negotiation as one of its own bullets
   - DP-0002 Phase 3's milestone list explicitly includes desktop-side adapter/capability negotiation as one of its own bullets
   - The "Unresolved sequencing circularity" note in DP-0002 is resolved, replaced with a brief historical pointer to the decision log
+  - DP-0002 Phase 2's status label reads "Done (browser-only)"
   - project/memory/decision_log.md records the reordering decision and rationale
+  - All 8 swept negotiation references, plus focus/current_focus.md's separate "selected active workstream" exit-criterion statement, are consistent with the reorder and with Phase 2 now being complete rather than active
   - lrh validate reports 0 errors
   - No code files are touched
 required_evidence:
