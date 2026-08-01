@@ -90,12 +90,12 @@ Resolve the DP-0002 Phase 2/Phase 3 sequencing circularity flagged during `WI-AR
 ## Acceptance Criteria
 - DP-0002 Phase 2's milestone list no longer includes desktop-side adapter/capability negotiation as one of its own bullets, and its retained web-side negotiation bullet is marked done, citing both `WebGPU::create_with_preset` (adapter acquisition) and `Renderer::new` (capability validation) as the current location of the negotiation, without asserting how a future Phase 3 desktop caller will reach either.
 - DP-0002 Phase 3's milestone list explicitly includes desktop-side adapter/capability negotiation as one of its own bullets, with a note that it moved from Phase 2 on 2026-08-01.
-- The "Unresolved sequencing circularity" note is resolved, replaced with a pointer to the decision log entry.
+- The "Unresolved sequencing circularity" note is resolved, replaced with a brief historical pointer to the decision log entry.
 - DP-0002 Phase 2's status label reads "Done (browser-only)", and the Phase 2 first bullet's "this milestone is still 'Partially done'" clause is reworded to unambiguously attribute it to Phase 1.
 - `project/memory/decision_log.md` records the decision, rationale, and follow-ups (Phase 3 still needs its own explicit selection).
 - All 8 swept negotiation references, plus `focus/current_focus.md`'s separate "selected active workstream" exit-criterion statement, are consistent with the reorder and with Phase 2 now being complete rather than active. The sweep excludes historical records (`decision_log.md` entries, `project/executions/` records).
 - `lrh validate` reports 0 errors.
-- No file under `webgpu_vector_lib/` or `velumin-core/` is touched.
+- No code files are touched (including but not limited to `webgpu_vector_lib/`, `velumin-core/`, and `scripts/`).
 
 ## Validation
 - `lrh validate`
