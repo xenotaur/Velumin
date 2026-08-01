@@ -55,7 +55,7 @@ Resolve the DP-0002 Phase 2/Phase 3 sequencing circularity flagged during `WI-AR
 `WI-ARCH-0003`'s review (2026-08-01) surfaced a real structural inconsistency in DP-0002's own milestone list: Phase 2 lists "explicit adapter/capability negotiation for web and desktop" as one of its own bullets, but achieving the desktop half requires a native surface/adapter acquisition path — exactly what Phase 3 ("Native `winit` Shell") would build — and Phase 3 is sequenced *after* Phase 2 in the current list. As scoped today, that one Phase 2 bullet can never complete before Phase 3 exists, while Phase 3 does not depend on that bullet completing first. This was acknowledged in an inline note added to DP-0002 during that review but deliberately left unresolved, naming two options: scope a minimal native-surface acquisition seam as its own Phase 2 slice, or explicitly merge/reorder the bullet into Phase 3. The maintainer has chosen the second, lighter option — this item does not build any native-surface code; it only makes the phase list internally consistent by moving the bullet to the phase it structurally belongs to.
 
 ### Duplication search
-- In-repo: No existing implementation found. `WI-ARCH-0003` (resolved) flagged the circularity but explicitly left it unresolved ("Not resolved here.").
+- In-repo: No existing implementation found. `WI-ARCH-0003` (resolved) flagged the circularity during its review, and the resulting DP-0002 inline note explicitly left it unresolved ("Not resolved here.").
 - Sibling repos: None identified.
 - External libraries: None identified.
 - Recommendation: Proceed.
@@ -88,11 +88,11 @@ Resolve the DP-0002 Phase 2/Phase 3 sequencing circularity flagged during `WI-AR
 - Do not scope or imply a "minimal native-surface acquisition seam" — that was the heavier alternative the maintainer explicitly did not choose.
 
 ## Acceptance Criteria
-- DP-0002 Phase 2's milestone list no longer includes desktop-side adapter/capability negotiation as one of its own bullets, and its retained web-side negotiation bullet is marked done, citing both `WebGPU::create_with_preset` (adapter acquisition) and `Renderer::new` (capability validation) as the current location of the negotiation, without asserting how a future Phase 3 desktop caller will reach either.
+- DP-0002 Phase 2's milestone list no longer includes desktop-side adapter/capability negotiation as one of its own bullets, and its retained web-side negotiation bullet is marked done, citing both `WebGPU::create_with_preset` (adapter acquisition) and `Renderer::new` (capability validation) without asserting how a future Phase 3 desktop caller will reach either.
 - DP-0002 Phase 3's milestone list explicitly includes desktop-side adapter/capability negotiation as one of its own bullets, with a note that it moved from Phase 2 on 2026-08-01.
-- The "Unresolved sequencing circularity" note is resolved, replaced with a brief historical pointer to the decision log entry.
+- The "Unresolved sequencing circularity" note in DP-0002 is resolved, replaced with a brief historical pointer to the decision log.
 - DP-0002 Phase 2's status label reads "Done (browser-only)", and the Phase 2 first bullet's "this milestone is still 'Partially done'" clause is reworded to unambiguously attribute it to Phase 1.
-- `project/memory/decision_log.md` records the decision, rationale, and follow-ups (Phase 3 still needs its own explicit selection).
+- `project/memory/decision_log.md` records the reordering decision, rationale, and follow-ups.
 - All 8 swept negotiation references, plus `focus/current_focus.md`'s separate "selected active workstream" exit-criterion statement, are consistent with the reorder and with Phase 2 now being complete rather than active. The sweep excludes historical records (`decision_log.md` entries, `project/executions/` records).
 - `lrh validate` reports 0 errors.
 - No code files are touched (including but not limited to `webgpu_vector_lib/`, `velumin-core/`, and `scripts/`).
