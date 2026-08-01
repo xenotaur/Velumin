@@ -1,6 +1,6 @@
 ---
 id: WI-ARCH-0003
-title: Structure Renderer's Capability-Negotiation Failures as Typed Errors (DP-0002 Phase 2)
+title: Structure Renderer's Capability-Negotiation Failures as Typed Errors (DP-0002 Phase 2 prep, does not close the negotiation bullet)
 type: deliverable
 status: proposed
 priority: low
@@ -40,15 +40,15 @@ artifacts_expected:
   - webgpu_vector_lib/src/lib.rs (updated)
 ---
 
-# WI-ARCH-0003: Structure Renderer's Capability-Negotiation Failures as Typed Errors (DP-0002 Phase 2)
+# WI-ARCH-0003: Structure Renderer's Capability-Negotiation Failures as Typed Errors (DP-0002 Phase 2 prep, does not close the negotiation bullet)
 
 ## Summary
 Replace `RendererError`'s bare `String` payload with a small enum of specific capability-negotiation failure variants (unsupported surface format, unsupported alpha mode, missing required present mode, insufficient device limits, device request failure), plus a catch-all variant for `Renderer::render`'s runtime errors — so a future native caller can match on which specific negotiation check failed, not just parse a message string. Preserves exact JS-facing error text at the `WebGPU` boundary.
 
 ## Problem / Context
-DP-0002 Phase 2's "explicit adapter/capability negotiation for web and desktop" bullet is substantially satisfied already: `WI-ARCH-0002` (PR #20) made the format/alpha-mode/present-mode/limits checks in `Renderer::new` platform-neutral, so they already apply to any future native surface with no changes needed — `Renderer::new` takes a generic `wgpu::Surface`/`Adapter`, and `wgpu`'s own `request_adapter`/`request_device` APIs are already platform-agnostic. The remaining gap is narrow: these failures are all currently represented as a single `RendererError(String)` (`webgpu_vector_lib/src/lib.rs:16`) — fine for the web's JS-facing error messages, but not structured enough for a future native (non-JS) caller to distinguish failure kinds programmatically (e.g. to retry with relaxed limits vs. report a hard incompatibility).
+**This item does not close DP-0002 Phase 2's "explicit adapter/capability negotiation for web and desktop" bullet.** `WebGPU::create_with_preset` acquires the `wgpu::Adapter` itself (via `instance.request_adapter(...)`) before ever calling `Renderer::new` — that acquisition step is entirely browser-specific (`web_sys::window`, canvas-derived surface) and has no native equivalent today. `WI-ARCH-0002` (PR #20) made the format/alpha-mode/present-mode/limits *checks* inside `Renderer::new` platform-neutral, so those specific checks would already apply to a future native surface with no changes needed — but native adapter selection and failure handling (the actual desktop-side negotiation) remain entirely untracked, and stay that way until DP-0002 Phase 3 provides a real native entry point. This item's Non-Goals explicitly exclude that entry point, so it cannot be read as satisfying the Phase 2 bullet; it should be understood as a standalone error-model refactor, not Phase 2 progress in itself.
 
-A genuine native entry point (winit window → surface → adapter → call `Renderer::new`) remains DP-0002 Phase 3's job, not this item's — this item only prepares the error shape both consumers will eventually share.
+What this item *does* do: `Renderer::new`'s existing capability-check failures are all currently represented as a single `RendererError(String)` (`webgpu_vector_lib/src/lib.rs:16`) — fine for the web's JS-facing error messages, but not structured enough for a future native (non-JS) caller to distinguish failure kinds programmatically (e.g. to retry with relaxed limits vs. report a hard incompatibility). This item restructures that error type only, as low-risk prep work that a future Phase 3 native caller could benefit from — independent of whether or when Phase 3 happens.
 
 ### Duplication search
 - In-repo: No existing implementation found. `WI-ARCH-0002` introduced `RendererError` as a plain `String` wrapper; this item refines that same type.
@@ -57,8 +57,8 @@ A genuine native entry point (winit window → surface → adapter → call `Ren
 - Recommendation: Proceed.
 
 ### Demand search
-- Work items: `WI-ARCH-0002` (resolved) introduced `RendererError` but explicitly scoped out desktop-specific capability negotiation as a Non-Goal, since no native host exists yet. This item is the narrow, implementable-now residue of that deferred scope, chosen over deferring the whole DP-0002 Phase 2 bullet until Phase 3 exists.
-- Proposals: DP-0002 (proposed) — Phase 2 "Modern Shared `wgpu` Renderer," the "adapter/capability negotiation for web and desktop" bullet.
+- Work items: `WI-ARCH-0002` (resolved) introduced `RendererError` but explicitly scoped out desktop-specific capability negotiation as a Non-Goal, since no native host exists yet. This item is a standalone error-model refactor, not a continuation that closes that deferred scope — the desktop-side negotiation bullet itself remains untracked and open, pending DP-0002 Phase 3.
+- Proposals: DP-0002 (proposed) — Phase 2 "Modern Shared `wgpu` Renderer." The "adapter/capability negotiation for web and desktop" bullet remains open after this item; do not mark it done on this item's account.
 - Backlog: No matching entries.
 - Recommendation: No action.
 
@@ -72,6 +72,7 @@ A genuine native entry point (winit window → surface → adapter → call `Ren
 2. Implement `Display` for the enum, one arm per variant, producing the exact current message text byte-for-byte (verify against the current literals before changing anything).
 3. Update all 7 `RendererError::new(...)` construction call sites to construct the appropriate variant instead.
 4. Keep the `From<RendererError> for JsValue` impl producing identical `JsValue::from_str(&format!("{}", err))` output — no change to its own logic, just to what type it now converts from.
+5. Add unit tests asserting each variant's `Display` output equals the current literal message text exactly, including the dynamic `Other`/device-request/frame-failure variants that interpolate a `{:?}`-formatted upstream error or dimensions — construct those variants directly with a representative payload and assert on the formatted string, since no existing test exercises these failure paths and neither `scripts/smoke` (which only drives successful WebGPU scenes) nor plain compilation can catch a wording or punctuation drift.
 
 ## Non-Goals
 - Do not implement DP-0002 Phase 3 (native `winit` desktop shell) or any native entry point — that is separate future work, gated on its own selection.
@@ -81,9 +82,10 @@ A genuine native entry point (winit window → surface → adapter → call `Ren
 
 ## Acceptance Criteria
 - `RendererError` is an enum with distinct variants for each capability-negotiation failure, not a bare `String` wrapper.
-- Every JS-facing error message produced via the `From<RendererError> for JsValue` impl is byte-identical to the current text.
+- Every JS-facing error message produced via the `From<RendererError> for JsValue` impl is byte-identical to the current text, **enforced by a unit test per variant** (not just manual inspection) — `scripts/test` alone does not satisfy this criterion unless it includes these assertions.
 - `lrh validate` reports 0 errors.
 - `scripts/smoke` reports actual per-scene captures matching the committed reference signatures (MAD ~0.000). A `SKIP` exit does not satisfy this criterion.
+- This item does not close DP-0002 Phase 2's "adapter/capability negotiation for web and desktop" bullet — that remains open pending Phase 3; do not update `project/design/proposals/proposed/DP-0002-cross-platform-renderer-architecture.md` to mark it done on this item's account.
 
 ## Validation
 - `scripts/version tools`
