@@ -29,7 +29,7 @@ forbidden_actions:
   - change_web_facing_error_text
 acceptance:
   - RendererError is an enum with distinct variants for each capability-negotiation failure, not a bare String wrapper
-  - Every JS-facing error message produced via the From<RendererError> for JsValue impl is byte-identical to the current text
+  - Every JS-facing error message produced via the From<RendererError> for JsValue impl is byte-identical to the current text, enforced by a unit test per variant (not just manual inspection)
   - lrh validate reports 0 errors
   - scripts/smoke reports actual per-scene captures matching committed reference signatures (MAD ~0.000), not a SKIP exit
 required_evidence:
@@ -57,7 +57,7 @@ What this item *does* do: `Renderer::new`'s existing capability-check failures a
 - Recommendation: Proceed.
 
 ### Demand search
-- Work items: `WI-ARCH-0002` (resolved) introduced `RendererError` but explicitly scoped out desktop-specific capability negotiation as a Non-Goal, since no native host exists yet. This item is a standalone error-model refactor, not a continuation that closes that deferred scope — the desktop-side negotiation bullet itself remains untracked and open, pending DP-0002 Phase 3.
+- Work items: `WI-ARCH-0002` (resolved) introduced `RendererError` but explicitly scoped out desktop-specific capability negotiation as a Non-Goal, since no native host exists yet. This item is a standalone error-model refactor, not a continuation that closes that deferred scope — the desktop-side negotiation bullet itself remains untracked and open, blocked on the unresolved DP-0002 Phase 2/Phase 3 sequencing circularity noted above (not simply "pending Phase 3," since Phase 3 is not a decided resolution).
 - Proposals: DP-0002 (proposed) — Phase 2 "Modern Shared `wgpu` Renderer." The "adapter/capability negotiation for web and desktop" bullet remains open after this item; do not mark it done on this item's account.
 - Backlog: No matching entries.
 - Recommendation: No action.
