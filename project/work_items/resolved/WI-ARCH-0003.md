@@ -2,7 +2,7 @@
 id: WI-ARCH-0003
 title: Structure Renderer's Capability-Negotiation Failures as Typed Errors (DP-0002 Phase 2 prep, does not close the negotiation bullet)
 type: deliverable
-status: proposed
+status: resolved
 priority: low
 owner: project maintainers
 assigned_agents: []
@@ -17,7 +17,7 @@ depends_on: []
 blocked_by: []
 blocked: false
 blocked_reason: null
-resolution: null
+resolution: Implemented and merged in PR #22 (commit 153bdc1) — replaced RendererError's bare String payload with a 7-variant enum, each Display arm owning its full message text. Documented one forced exception (DeviceRequestFailed wraps wgpu::RequestDeviceError directly, since it has no public constructor for test fabrication, but Display still performs the {:?} formatting so production drift is eliminated). scripts/smoke reported 9/9 checks at MAD 0.000 (zero visual regression). Does not close DP-0002 Phase 2's negotiation bullet, per the item's own explicit framing.
 expected_actions:
   - edit_file
   - run_tests
