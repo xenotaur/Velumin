@@ -42,6 +42,7 @@ acceptance:
   - Browser JavaScript can create a VectorFrame, append line/polyline/closed-polyline commands, and render it through WebGPU.renderFrame.
   - The implementation reuses velumin-core VectorCommand types and the existing WebGPU renderer path without replacing existing demo entrypoints.
   - A deterministic public-frame harness demonstrates Replication Vector or Blasterites-style geometry without implementing a playable game.
+  - The public-frame harness has browser-rendered visual evidence through scripts/smoke coverage or an explicit manual screenshot/pixel evidence artifact when automation is unavailable.
   - README or web-facing docs describe the public API, coordinate system, style parameters, and display-preset interaction.
   - scripts/format --check, scripts/lint, scripts/test, scripts/baseline, and lrh validate pass.
 required_evidence:
@@ -49,6 +50,7 @@ required_evidence:
   - lrh_validate
   - test_output
   - validation_output
+  - visual_smoke_or_screenshot
 artifacts_expected:
   - webgpu_vector_lib/src/lib.rs
   - webgpu_vector_lib/web/index.html
@@ -117,6 +119,7 @@ This item is the first bounded implementation slice for DP-0008. It should unloc
    - Test malformed typed-array length and non-finite input behavior where feasible.
    - Test closed-polyline behavior.
    - Preserve existing renderer, preset, smoke, and demo behavior.
+   - Include browser-rendered evidence for the public-frame harness: either extend `scripts/smoke` to cover the new route on a WebGPU-capable environment, or record an explicit manual screenshot/pixel evidence artifact if automation is unreliable.
 
 6. Follow the review plan during execution.
    - Use a fresh independent self-review sub-agent before merge or when review-budget gates would otherwise trigger another GitHub review round.
@@ -140,6 +143,7 @@ This item is the first bounded implementation slice for DP-0008. It should unloc
 - Existing demo entrypoints continue to work.
 - The coordinate system and style parameters are documented.
 - Deterministic public-frame harness output exists for at least one Replication Vector / Blasterites-style scene.
+- The public-frame harness has browser-rendered visual evidence through `scripts/smoke` coverage or an explicit manual screenshot/pixel evidence artifact.
 - Local validation remains green.
 - The implementation PR uses self-review with a fresh independent sub-agent instead of extra paid GitHub review retriggers.
 
@@ -151,7 +155,7 @@ This item is the first bounded implementation slice for DP-0008. It should unloc
 - `scripts/test`
 - `scripts/baseline`
 - `lrh validate`
-- `scripts/smoke` on a WebGPU-capable environment if the public-frame harness is added to visual smoke coverage
+- `scripts/smoke` on a WebGPU-capable environment covering the public-frame harness, or an explicit manual screenshot/pixel evidence artifact when smoke automation is unavailable
 
 ## Risk Notes
 
