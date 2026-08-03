@@ -3,6 +3,7 @@ id: DP-0008
 type: design_proposal
 title: Browser-First Vector Frame API
 status: proposed
+owner: project maintainers
 created: 2026-08-03
 implementation_status: not_started
 implemented_by: []

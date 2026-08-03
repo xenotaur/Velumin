@@ -26,7 +26,7 @@ Parent re-verification checked the live PR head and the primary record, then che
 
 # Validation
 
-Pending in this record at creation time: `lrh validate` will be run before committing and pushing this self-review/fix commit.
+Ran `lrh validate` before committing and pushing the self-review/fix commit. Result: 0 errors, 0 warnings.
 
 # Follow-up
 

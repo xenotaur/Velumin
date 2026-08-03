@@ -5,7 +5,7 @@ work_item: AD_HOC
 status: in_progress
 rerun_of: 2026_08_03_16_25_39_BROWSER_VECTOR_FRAME_API
 pr: https://github.com/xenotaur/Velumin/pull/25
-commit: 28e3f2094719fc4782082966455e21e31c644100
+commit: 
 created_at: 2026-08-03T17:05:56+00:00
 agent: claude_app
 instruction_source: https://github.com/xenotaur/Velumin/pull/25
@@ -28,7 +28,7 @@ Provisional CI/readiness context before this confirm record commit: `gh pr check
 
 # Validation
 
-Pending in this record at creation time: `lrh validate` will be run before committing and pushing this confirm record. Post-push readiness must re-check PR #25's new `HEAD` before any merge gate.
+Ran `lrh validate` before committing and pushing this confirm record. Result: 0 errors, 0 warnings. Post-push readiness must re-check PR #25's new `HEAD` before any merge gate.
 
 # Follow-up
 
