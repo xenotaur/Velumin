@@ -4,8 +4,8 @@ prompt_id: PROMPT(AD_HOC:BROWSER_VECTOR_FRAME_API)[2026-08-03T16:15:32+00:00]
 work_item: AD_HOC
 status: in_progress
 rerun_of: 
-pr: 
-commit: 
+pr: https://github.com/xenotaur/Velumin/pull/25
+commit: 34f4154d07e0eca3c6aa824f2f831c7258e82ed1
 created_at: 2026-08-03T16:25:39+00:00
 agent: claude_app
 instruction_source: project/design/proposals/proposed/browser-vector-frame-api/00_proposal.md
