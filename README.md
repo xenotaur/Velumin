@@ -62,6 +62,8 @@ frame.clear();
 
 The v1 geometry surface is stroke-first: `line(x1, y1, x2, y2, r, g, b, a, width, intensity)`, `polyline(points, r, g, b, a, width, intensity)`, and `closedPolyline(points, r, g, b, a, width, intensity)`. Polyline point arrays are flat x/y pairs, usually a `Float32Array`; `closedPolyline` repeats the first point when the submitted array is not already closed. Malformed point arrays and non-finite values throw JavaScript errors before anything is appended.
 
+There are two boundaries. JavaScript uses `VectorFrame` because nested Rust enums and structs such as `VectorCommand` are not the browser JS ABI. Rust/WASM consumers that already own Velumin command data can avoid serializing through JavaScript and call `WebGPU::render_commands(&[VectorCommand])`; `renderFrame` delegates to the same normal CRT renderer path. Both routes render command slices through the existing `Renderer`.
+
 Coordinates use Velumin's current centered 4:3 logical playfield: center origin, y-up, with visible coordinates roughly from `-1.0..=1.0` horizontally and `-0.75..=0.75` vertically. Browser resize keeps that playfield centered with letterbox or pillarbox margins rather than stretching geometry. Color channels and alpha use `0.0..=1.0`; stroke width is a positive logical width; intensity is a non-negative multiplier applied by the renderer. Display presets remain renderer-global: commands carry stroke color, width, and intensity, while `VectorDisplayPreset` controls the overall glow/CRT look.
 
 This is an immediate-frame API, not a retained scene graph. Rebuild and submit the commands visible for each game frame.

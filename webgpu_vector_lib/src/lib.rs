@@ -667,12 +667,7 @@ impl WebGPU {
 
     #[wasm_bindgen(js_name = renderFrame)]
     pub fn render_frame(&mut self, frame: &VectorFrame) -> Result<(), JsValue> {
-        let window = web_sys::window().ok_or("No window available")?;
-        let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
-        self.renderer.resize(width, height);
-        self.renderer
-            .render(frame.commands(), false)
-            .map_err(JsValue::from)
+        self.render_commands(frame.commands())
     }
 
     #[wasm_bindgen]
@@ -715,6 +710,19 @@ impl WebGPU {
         self.renderer
             .render(&blasterites_tester_scene(wrapped_time_ms), true)
             .map_err(JsValue::from)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl WebGPU {
+    /// Render already-owned Rust vector commands through the same browser
+    /// renderer path as `renderFrame`, without converting them through the
+    /// JavaScript `VectorFrame` builder.
+    pub fn render_commands(&mut self, commands: &[VectorCommand]) -> Result<(), JsValue> {
+        let window = web_sys::window().ok_or("No window available")?;
+        let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
+        self.renderer.resize(width, height);
+        self.renderer.render(commands, false).map_err(JsValue::from)
     }
 }
 
@@ -2156,6 +2164,58 @@ mod tests {
             Err(VectorFrameInputError::InvalidIntensity)
         );
         assert!(frame.is_empty());
+    }
+
+    #[test]
+    fn typed_vector_command_scene_reaches_renderer_geometry_path() {
+        let commands = vec![
+            VectorCommand::Polyline(Polyline {
+                points: vec![
+                    Vec2 { x: -0.7, y: 0.0 },
+                    Vec2 { x: -0.84, y: 0.08 },
+                    Vec2 { x: -0.78, y: 0.0 },
+                    Vec2 { x: -0.84, y: -0.08 },
+                    Vec2 { x: -0.7, y: 0.0 },
+                ],
+                style: white_style(0.018),
+            }),
+            VectorCommand::Polyline(Polyline {
+                points: vec![
+                    Vec2 { x: 0.06, y: -0.24 },
+                    Vec2 { x: 0.28, y: -0.34 },
+                    Vec2 { x: 0.5, y: -0.22 },
+                    Vec2 { x: 0.56, y: 0.02 },
+                    Vec2 { x: 0.42, y: 0.24 },
+                    Vec2 { x: 0.16, y: 0.28 },
+                    Vec2 { x: -0.04, y: 0.1 },
+                    Vec2 { x: 0.06, y: -0.24 },
+                ],
+                style: white_style(0.014),
+            }),
+            VectorCommand::Line(Line {
+                start: Vec2 { x: -0.62, y: 0.0 },
+                end: Vec2 { x: 0.02, y: 0.02 },
+                style: stroke(
+                    0.012,
+                    Color {
+                        red: 0.45,
+                        green: 0.9,
+                        blue: 1.0,
+                        alpha: 1.0,
+                    },
+                    1.45,
+                ),
+            }),
+        ];
+        let settings = display_settings_from_preset(VectorDisplayPreset::ArcadeBalanced);
+
+        let crisp_vertices = tessellate_commands(&commands);
+        let glow_vertices = tessellate_glow_commands(&commands, settings);
+
+        assert!(!crisp_vertices.is_empty());
+        assert!(!glow_vertices.is_empty());
+        assert!(crisp_vertices.len() >= 18);
+        assert_eq!(glow_vertices.len() % settings.glow_layers().len(), 0);
     }
 
     fn line_length(start: Vec2, end: Vec2) -> f32 {
