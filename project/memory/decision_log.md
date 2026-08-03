@@ -101,3 +101,24 @@
 ### Status
 - Accepted
 
+## 2026-08-01: Resolve DP-0002 Phase 2/Phase 3 sequencing circularity by reordering
+
+### Summary
+- Moved desktop-side adapter/capability negotiation out of DP-0002 Phase 2 and into Phase 3.
+- Marked DP-0002 Phase 2 as done for its browser-only shared-renderer scope.
+
+### Decisions
+- DP-0002 Phase 2 now covers the completed browser-side work: the reusable, surface-agnostic `Renderer` state delivered by `WI-ARCH-0002`, web adapter acquisition and unavailable-adapter handling in `WebGPU::create_with_preset`, and capability validation in `Renderer::new`.
+- Desktop-side adapter/capability negotiation belongs to Phase 3 because it requires a native surface/adapter acquisition path, which does not exist before the native `winit` shell work begins.
+- This is a phase-list correction only. It does not select Phase 3, implement native surface acquisition, or commit to a specific future desktop constructor path.
+
+### Rationale
+- Keeping desktop-side negotiation in Phase 2 created a sequencing circularity: Phase 2 could not finish until Phase 3 supplied a native surface path, while Phase 3 itself was sequenced after Phase 2.
+- Moving the desktop half into Phase 3 preserves the already-completed browser-side negotiation evidence without inventing a native seam or broadening the completed work.
+
+### Uncertainty / Follow-ups
+- Phase 3 still needs its own explicit workstream selection before any of its bullets, including desktop-side adapter/capability negotiation, can be worked.
+- The future desktop entrypoint and how it reaches adapter acquisition and capability validation remain undecided.
+
+### Status
+- Accepted

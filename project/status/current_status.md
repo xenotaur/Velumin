@@ -13,7 +13,7 @@ health: yellow
 - LRH project-control artifacts make intent, constraints, evidence, and uncertainty explicit.
 - DP-0001, DP-0004, DP-0005, and DP-0006 are adopted. DP-0005 shipped the deterministic Blasterites tester and live tuner browser demos (merged across PRs #3-#6).
 - DP-0006 (Vector CRT renderer migration) was adopted on 2026-07-24 and is partially implemented: a fixed 4:3 viewport, additive multi-layer glow, and an internal display-preset set have landed alongside the demos, validated by code inspection (EV-0008) and browser visual-smoke capture (EV-0009). The WI-SMOKE-0001 smoke check (`scripts/smoke`) now captures the baseline, tester (pre/post), and tuner at 4:3, wide, and tall, so the non-4:3 letterbox/pillarbox path is covered. The public preset API (adopted DP-0007) is implemented in WI-PRESET-0001 — a public `#[non_exhaustive]` `VectorDisplayPreset` selectable at creation and runtime — and the non-default presets are now captured in the smoke check.
-- DP-0002 and DP-0003 remain proposed (not adopted) design directions. DP-0002's Phase 1 platform-neutral type extraction is done: `WI-ARCH-0001` (PR #17) converted the repository into a Cargo workspace with a `velumin-core` crate holding vector/scene/style types, zero `wasm-bindgen`/`web-sys`/`wgpu` dependency. DP-0002 Phase 2's reusable, surface-agnostic `wgpu` renderer state is also done: `WI-ARCH-0002` (PR #20) made `Renderer` host-buildable. Desktop-side adapter/capability negotiation (the rest of Phase 2) has no work item scoped yet. DP-0003 remains unselected.
+- DP-0002 and DP-0003 remain proposed (not adopted) design directions. DP-0002's Phase 1 platform-neutral type extraction is done: `WI-ARCH-0001` (PR #17) converted the repository into a Cargo workspace with a `velumin-core` crate holding vector/scene/style types, zero `wasm-bindgen`/`web-sys`/`wgpu` dependency. DP-0002 Phase 2 is done for the browser-only shared-renderer slice: `WI-ARCH-0002` (PR #20) made `Renderer` host-buildable, and web-side adapter/capability negotiation is covered by `WebGPU::create_with_preset` plus `Renderer::new`. Desktop-side adapter/capability negotiation moved to Phase 3 on 2026-08-01 and remains unselected. DP-0003 remains unselected.
 
 ## Evidence Basis
 - `README.md` identifies Velumin as a retro vector-graphics library and documents the `/`, `/?demo=blasterites`, and `/?demo=tuner` demo routes.
@@ -30,7 +30,7 @@ health: yellow
 ## Active Priorities
 - Preserve the adopted DP-0001 baseline, DP-0004 validation workflow, DP-0005 demos, and DP-0006 renderer.
 - Preserve the adopted DP-0006 renderer, the WI-SMOKE-0001 smoke check, and the DP-0007 public preset API (implemented in WI-PRESET-0001).
-- Decide whether/when to build DP-0007's deferred public custom display-settings API. DP-0002 Phase 2's reusable, surface-agnostic `wgpu` renderer state is implemented (`WI-ARCH-0002`, PR #20); desktop-side adapter/capability negotiation (the rest of Phase 2) still needs a work item scoped.
+- Decide whether/when to build DP-0007's deferred public custom display-settings API. DP-0002 Phase 2 is complete for its browser-only shared-renderer scope; desktop-side adapter/capability negotiation is now a Phase 3 bullet and still awaits Phase 3's own workstream selection.
 - Keep design proposal lifecycle metadata and directories aligned with what is merged.
 
 ## Risks
@@ -40,5 +40,5 @@ health: yellow
 
 ## Recommended Next Actions
 1. Decide whether to build DP-0007's deferred public custom display-settings API (a follow-up proposal/work item), or leave named presets as the v1 public surface.
-2. Scope a work item for DP-0002 Phase 2's desktop-side adapter/capability negotiation, now that `WI-ARCH-0002`'s renderer-state slice is implemented.
+2. Select and scope DP-0002 Phase 3 before pursuing desktop-side adapter/capability negotiation or a native `winit` shell.
 3. Define the first public vector primitive or scene API target.
