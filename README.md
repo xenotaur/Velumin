@@ -39,6 +39,33 @@ gpu.setDisplayPreset(VectorDisplayPreset.CleanNeon);
 
 The preset **names** are a stable contract and `VectorDisplayPreset` is `#[non_exhaustive]` (presets may be added later). The numeric glow/stroke tuning behind each preset is internal and may be re-tuned. The demos expose a preset dropdown (baseline and Blasterites), and `?preset=<name>` (e.g. `?demo=blasterites&preset=clean-neon`) selects one via query parameter.
 
+## Browser Frame API
+
+Velumin exposes a browser-first immediate frame API (DP-0008) for JavaScript games that own their simulation and want Velumin to render vector geometry. Build a `VectorFrame`, append commands for the current frame, and submit it through the existing WebGPU renderer:
+
+```js
+import init, { VectorFrame, WebGPU, VectorDisplayPreset } from "@pkg/webgpu_vector_lib.js";
+await init();
+
+const gpu = await WebGPU.createWithPreset("canvas", VectorDisplayPreset.ArcadeBalanced);
+const frame = new VectorFrame();
+
+frame.line(-0.6, 0.0, 0.2, 0.0, 0.4, 0.9, 1.0, 1.0, 0.012, 1.4);
+frame.closedPolyline(
+  new Float32Array([-0.72, 0.0, -0.86, 0.075, -0.8, 0.0, -0.86, -0.075]),
+  0.72, 0.92, 1.0, 1.0, 0.018, 1.25,
+);
+
+gpu.renderFrame(frame);
+frame.clear();
+```
+
+The v1 geometry surface is stroke-first: `line(x1, y1, x2, y2, r, g, b, a, width, intensity)`, `polyline(points, r, g, b, a, width, intensity)`, and `closedPolyline(points, r, g, b, a, width, intensity)`. Polyline point arrays are flat x/y pairs, usually a `Float32Array`; `closedPolyline` repeats the first point when the submitted array is not already closed. Malformed point arrays and non-finite values throw JavaScript errors before anything is appended.
+
+Coordinates use Velumin's current centered 4:3 logical playfield: center origin, y-up, with visible coordinates roughly from `-1.0..=1.0` horizontally and `-0.75..=0.75` vertically. Browser resize keeps that playfield centered with letterbox or pillarbox margins rather than stretching geometry. Color channels and alpha use `0.0..=1.0`; stroke width is a positive logical width; intensity is a non-negative multiplier applied by the renderer. Display presets remain renderer-global: commands carry stroke color, width, and intensity, while `VectorDisplayPreset` controls the overall glow/CRT look.
+
+This is an immediate-frame API, not a retained scene graph. Rebuild and submit the commands visible for each game frame.
+
 ## Browser Demos
 
 Build the WASM package and start the local Vite server:
@@ -53,9 +80,10 @@ Available demo routes:
 
 - `/` renders the baseline white-line smoke scene.
 - `/?demo=blasterites` renders the deterministic Blasterites-inspired tester scene with a rotating ship, bullet, approaching asteroid, spark explosion, glow, scanlines, and subtle pulse/wobble.
+- `/?demo=frame-api` renders a deterministic Replication Vector / Blasterites-style harness built from the public `VectorFrame` JavaScript API.
 - `/?demo=tuner` renders the Blasterites tester with live sliders for vector line width and glow-layer tuning.
 
-The Blasterites tester and tuner are renderer validation harnesses, not playable games. The tester is deterministic from elapsed time so future browser or screenshot smoke checks can target known moments in the animation.
+The Blasterites tester, tuner, and frame-API route are renderer validation harnesses, not playable games. The tester and frame-API harness are deterministic from elapsed time so future browser or screenshot smoke checks can target known moments in the animation.
 
 Add `?frame` (optionally `?frame=<ms>` or `?t=<ms>`) to any demo route to render a single deterministic frame at a fixed elapsed time instead of animating — this is the freeze-frame mode the screenshot smoke check uses.
 
@@ -65,7 +93,7 @@ Add `?frame` (optionally `?frame=<ms>` or `?t=<ms>`) to any demo route to render
 scripts/smoke
 ```
 
-`scripts/smoke` builds the WASM package, serves the demos, and drives a scripted headless Chromium (Playwright) over the deterministic tester frames at 4:3, wide, and tall viewports, asserting that each scene renders visible vector geometry on a black field and that non-4:3 sizes letterbox rather than distort. It requires a WebGPU-capable Chromium and **skips cleanly on GPU-less environments** (such as CI), so it is not part of `scripts/validate`. Run `npm install` in `webgpu_vector_lib/web/` and `npx playwright install chromium` first. See `scripts/README.md` for details.
+`scripts/smoke` builds the WASM package, serves the demos, and drives a scripted headless Chromium (Playwright) over deterministic tester frames at 4:3, wide, and tall viewports plus a 4:3 public frame-API harness capture, asserting that each scene renders visible vector geometry on a black field and that non-4:3 sizes letterbox rather than distort. It requires a WebGPU-capable Chromium and **skips cleanly on GPU-less environments** (such as CI), so it is not part of `scripts/validate`. Run `npm install` in `webgpu_vector_lib/web/` and `npx playwright install chromium` first. See `scripts/README.md` for details.
 
 ## Canonical Local Validation
 

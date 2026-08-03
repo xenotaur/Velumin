@@ -56,6 +56,7 @@ const CHECKS = [
   { name: "blasterites-4x3-post", url: `${BASE}/?demo=blasterites&frame&t=4000`, viewport: { width: 1024, height: 768 }, aspect: "4:3" },
   { name: "blasterites-wide", url: `${BASE}/?demo=blasterites&frame&t=2000`, viewport: { width: 1280, height: 480 }, aspect: "wide" },
   { name: "blasterites-tall", url: `${BASE}/?demo=blasterites&frame&t=2000`, viewport: { width: 600, height: 900 }, aspect: "tall" },
+  { name: "frame-api-4x3", url: `${BASE}/?demo=frame-api&frame&t=2000`, viewport: { width: 1024, height: 768 }, aspect: "4:3" },
   { name: "tuner-4x3", url: `${BASE}/?demo=tuner&frame&t=2000`, viewport: { width: 1024, height: 768 }, aspect: "4:3" },
   // Non-default display presets (DP-0007 / WI-PRESET-0001), captured on the
   // deterministic pre-impact tester frame so each advertised look has evidence.
