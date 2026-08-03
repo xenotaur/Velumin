@@ -5,7 +5,7 @@ work_item: AD_HOC
 status: in_progress
 rerun_of: 
 pr: https://github.com/xenotaur/Velumin/pull/25
-commit: 34f4154d07e0eca3c6aa824f2f831c7258e82ed1
+commit: 
 created_at: 2026-08-03T16:25:39+00:00
 agent: claude_app
 instruction_source: project/design/proposals/proposed/browser-vector-frame-api/00_proposal.md
@@ -28,4 +28,4 @@ Ran `lrh validate` after adding the proposal. Result: 0 errors, 0 warnings.
 
 # Follow-up
 
-If adopted, create a companion implementation work item, tentatively `WI-API-0001: Expose browser vector frame submission API`, before implementing the API. After this PR is reviewed and merged, run LRH closeout to mark this execution record landed and fill the PR/commit traceability fields.
+If adopted, create a companion implementation work item, tentatively `WI-API-0001: Expose browser vector frame submission API`, before implementing the API. After this PR is reviewed and merged, run LRH closeout to mark this execution record landed and fill the merge commit traceability field.
