@@ -42,7 +42,7 @@ owner: project maintainers
 - After the Vector CRT renderer stabilizes, split Velumin toward a platform-neutral core, shared `wgpu` renderer, browser frontend, and later native desktop frontend.
 - Keep the same vector command and renderer model usable by browser and desktop targets where possible.
 - Treat native `winit` work as a staged architecture milestone, not as a blocker for browser work.
-- Phase 1's platform-neutral type extraction is done: the repository is now a Cargo workspace with a `velumin-core` crate (`WI-ARCH-0001`, PR #17). Phase 2's reusable, surface-agnostic `wgpu` renderer state is done: `WI-ARCH-0002` (PR #20) made `Renderer` host-buildable. Desktop-side adapter/capability negotiation (also part of Phase 2) remains undone, with no work item scoped yet. Phase 3 (native `winit` shell) remains future work behind Phase 2.
+- Phase 1's platform-neutral type extraction is done: the repository is now a Cargo workspace with a `velumin-core` crate (`WI-ARCH-0001`, PR #17). Phase 2 is done for the browser-only shared-renderer slice: `WI-ARCH-0002` (PR #20) made `Renderer` host-buildable, and web-side adapter/capability negotiation is covered by `WebGPU::create_with_preset` plus `Renderer::new`. Desktop-side adapter/capability negotiation moved to Phase 3 on 2026-08-01 and remains future work behind Phase 3's own explicit selection.
 
 ## Later Directions
 - Add a native `winit` shell that renders the same smoke and tester scenes through the shared renderer.
