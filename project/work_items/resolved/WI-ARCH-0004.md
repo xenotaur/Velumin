@@ -2,7 +2,7 @@
 id: WI-ARCH-0004
 title: Resolve DP-0002 Phase 2/Phase 3 Sequencing Circularity by Reordering the Negotiation Bullet
 type: operation
-status: proposed
+status: resolved
 priority: low
 owner: project maintainers
 assigned_agents: []
@@ -17,7 +17,7 @@ depends_on: []
 blocked_by: []
 blocked: false
 blocked_reason: null
-resolution: null
+resolution: "Implemented and merged in PR #24 (commit 7acdd5ca2fea20785b007435c5004e8142299e54)"
 expected_actions:
   - edit_file
 forbidden_actions:
