@@ -145,4 +145,4 @@ This item should close that evidence loop before Velumin expands DP-0008, design
 - Architecture context: `project/design/proposals/proposed/DP-0002-cross-platform-renderer-architecture.md`
 - Future scene model context: `project/design/proposals/proposed/DP-0003-extensible-2d-scene-material-model.md`
 - Display API context: `project/design/proposals/adopted/DP-0007-display-preset-public-api.md`
-- Downstream evidence: `/Users/centaur/Workspace/ReplicationVector/replication_vector/project/evidence/EV-0004.md`
+- Downstream evidence: `ReplicationVector/replication_vector/project/evidence/EV-0004.md`
