@@ -13,7 +13,7 @@ owner: project maintainers
 - DP-0004 is adopted and implemented as the core local/CI validation workflow.
 - DP-0005 is adopted and implemented as the Blasterites tester and tuner browser demos.
 - DP-0006 (Vector CRT renderer) is adopted (2026-07-24) and partially implemented; its remaining follow-ups are tracked, not blocking.
-- DP-0008 (Browser-First Vector Frame API) is adopted and implemented by `WI-API-0001` (PR #27), exposing browser `VectorFrame` submission and a Rust/WASM typed `VectorCommand` slice path.
+- DP-0008 (Browser-First Vector Frame API) is adopted and implemented by `WI-API-0001` (PR #27), exposing browser `VectorFrame` submission and a Rust/WASM typed `VectorCommand` slice path; `WI-API-0002` validated that typed path against Replication Vector's representative frame (EV-0010).
 
 ## Completed Direction: DP-0001 Modern WebGPU-First Rendering
 - The browser white-line smoke demo is preserved as the baseline.
@@ -42,7 +42,7 @@ owner: project maintainers
 ## Adopted Direction: DP-0008 Browser-First Vector Frame API
 - Adopted 2026-08-03 and implemented by `WI-API-0001` (PR #27).
 - Landed: a browser `VectorFrame` builder for line, polyline, and closed-polyline command submission; `WebGPU.renderFrame(frame)`; a Rust/WASM `WebGPU::render_commands(&[VectorCommand])` path for downstream consumers that already own typed Velumin command data; README documentation; and the `/?demo=frame-api` deterministic public-frame harness.
-- Follow-up work should be driven by real downstream integration evidence from Replication Vector / Blasterites-style consumers, not by speculative expansion into the full DP-0003 scene/material model.
+- EV-0010 validates the typed Rust/WASM command-slice path for Replication Vector's current representative frame, so no immediate DP-0008 expansion is justified by that scene alone. Follow-up work should still be driven by additional downstream integration evidence from Replication Vector / Blasterites-style consumers, not by speculative expansion into the full DP-0003 scene/material model.
 
 ## Next Horizon: DP-0002 Cross-Platform Renderer Architecture
 - After the Vector CRT renderer stabilizes, split Velumin toward a platform-neutral core, shared `wgpu` renderer, browser frontend, and later native desktop frontend.
