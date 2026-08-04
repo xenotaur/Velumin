@@ -53,7 +53,7 @@ required_evidence:
   - test_output
   - validation_output
 artifacts_expected:
-  - project/work_items/proposed/WI-API-0002.md
+  - project/work_items/resolved/WI-API-0002.md
   - project/evidence/EV-0010.md
   - project/status/current_status.md
 ---
