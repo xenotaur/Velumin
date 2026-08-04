@@ -2,11 +2,13 @@
 id: DP-0008
 type: design_proposal
 title: Browser-First Vector Frame API
-status: proposed
+status: adopted
 owner: project maintainers
 created: 2026-08-03
-implementation_status: not_started
-implemented_by: []
+adopted: 2026-08-03
+implementation_status: implemented
+implemented_by:
+  - WI-API-0001
 supersedes: []
 superseded_by: null
 scope: public rendering API, browser frame submission, vector commands
@@ -38,7 +40,7 @@ The API is browser-first and vector-emulation-first. It should unlock Replicatio
 
 Velumin's project goal is to become a retro vector-graphics library for browser games inspired by Asteroids, Star Castle, and Space War. The current renderer already has the visual foundation: WebGPU rendering, CPU-generated thick vector primitives, a centered 4:3 viewport, additive glow, display presets, and deterministic Blasterites tester/tuner demos.
 
-The missing product-facing piece is a public drawing API. Today, `velumin-core` has platform-neutral command types (`Vec2`, `Color`, `StrokeStyle`, `Line`, `Polyline`, `VectorCommand`), and the renderer internally consumes `&[VectorCommand]`, but browser consumers cannot submit their own vector frame data. Existing public browser entrypoints render built-in scenes (`render`, `render_blasterites_tester`, `render_blasterites_tuner`) rather than game-owned geometry.
+The product-facing drawing API is now represented by the DP-0008/WI-API-0001 public frame slice. `velumin-core` has platform-neutral command types (`Vec2`, `Color`, `StrokeStyle`, `Line`, `Polyline`, `VectorCommand`), the renderer consumes `&[VectorCommand]`, browser JavaScript can submit a `VectorFrame`, and Rust/WASM consumers that already own command data can render a typed command slice. Existing public browser entrypoints continue to render built-in scenes (`render`, `render_blasterites_tester`, `render_blasterites_tuner`) alongside game-owned geometry.
 
 This gap matters now because the motivating consumers are concrete: Replication Vector needs Star Castle-like ships, rings, blasters, obstacles, and explosions; Blasterites-style scenes need small low-poly spacecraft, irregular obstacles, bullets, debris, and glowy raster-line effects. Both can be represented by line/polyline vector commands before Velumin needs a retained scene graph, materials, masks, sprites, or native desktop shell.
 
@@ -188,11 +190,11 @@ These harnesses should be usable by visual smoke checks and should coexist with 
 
 ## Implementation Plan
 
-A first implementation should be tracked by a single work item, tentatively:
+A first implementation was tracked by a single work item:
 
 - `WI-API-0001`: Expose browser vector frame submission API.
 
-Expected implementation stages:
+Implemented stages:
 
 1. Add a `VectorFrame` wasm-bindgen class in `webgpu_vector_lib`.
    - Owns a `Vec<VectorCommand>`.
@@ -224,7 +226,7 @@ Expected implementation stages:
 ## Acceptance Criteria
 
 - Browser JavaScript can create a `VectorFrame`, append line/polyline/closed-polyline commands, and render it through `WebGPU.renderFrame`.
-- The implementation reuses `velumin-core` command types and the existing WebGPU renderer path.
+- The implementation reuses `velumin-core` command types and the existing WebGPU renderer path, including a Rust/WASM command-slice path for downstream consumers that already own `VectorCommand` data.
 - The API supports ships, ring/obstacle outlines, blaster bolts, and spark/explosion clusters without game-specific concepts.
 - Existing demo entrypoints continue to work.
 - The coordinate system and style parameters are documented.

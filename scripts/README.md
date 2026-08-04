@@ -126,9 +126,10 @@ Builds the WASM package, prints the available browser demo routes, and starts th
 
 Builds the WASM package, serves the Vite harness, and drives a scripted headless
 Chromium (Playwright) over the demo scenes in freeze-frame mode
-(`?frame&t=<ms>`). It captures the WebGPU canvas at the deterministic Blasterites
-tester frames (`t=2000ms` pre-impact, `t=4000ms` post-impact) and at 4:3, wide,
-and tall viewports, then asserts structural properties of the rendered pixels
+(`?frame&t=<ms>`). It captures the WebGPU canvas at deterministic Blasterites
+tester frames (`t=2000ms` pre-impact, `t=4000ms` post-impact) across 4:3, wide,
+and tall viewports, plus a 4:3 public frame-API harness, then asserts structural
+properties of the rendered pixels
 (not all-black, not all-white, geometry present, pre- vs post-impact frames
 differ, and the non-4:3 letterbox/pillarbox margins are dark).
 

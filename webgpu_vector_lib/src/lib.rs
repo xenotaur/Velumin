@@ -1,6 +1,8 @@
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsValue;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 use velumin_core::RenderViewport;
@@ -169,6 +171,303 @@ pub enum VectorDisplayPreset {
     MonochromeBeam,
     ColorQuadraScan,
     CleanNeon,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+enum VectorFrameInputError {
+    InvalidPointArrayLength,
+    TooFewPolylinePoints,
+    TooFewClosedPolylinePoints,
+    NonFiniteValue,
+    InvalidColorRange,
+    InvalidStrokeWidth,
+    InvalidIntensity,
+}
+
+impl std::fmt::Display for VectorFrameInputError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidPointArrayLength => {
+                write!(f, "Point arrays must contain x/y pairs.")
+            }
+            Self::TooFewPolylinePoints => {
+                write!(f, "Polylines require at least two points.")
+            }
+            Self::TooFewClosedPolylinePoints => {
+                write!(f, "Closed polylines require at least three points.")
+            }
+            Self::NonFiniteValue => {
+                write!(f, "VectorFrame values must be finite numbers.")
+            }
+            Self::InvalidColorRange => {
+                write!(
+                    f,
+                    "Color channels and alpha must be finite values in the 0.0..=1.0 range."
+                )
+            }
+            Self::InvalidStrokeWidth => {
+                write!(f, "Stroke width must be a finite number greater than 0.0.")
+            }
+            Self::InvalidIntensity => {
+                write!(
+                    f,
+                    "Stroke intensity must be a finite number greater than or equal to 0.0."
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for VectorFrameInputError {}
+
+#[cfg(target_arch = "wasm32")]
+impl From<VectorFrameInputError> for JsValue {
+    fn from(error: VectorFrameInputError) -> Self {
+        JsValue::from_str(&error.to_string())
+    }
+}
+
+/// Immediate vector-command frame submitted by browser JavaScript.
+///
+/// `VectorFrame` is the public v1 browser drawing surface (DP-0008). Game code
+/// owns simulation and rebuilds the visible vector geometry each frame; Velumin
+/// owns conversion into the existing renderer path.
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[derive(Clone, Debug, Default)]
+pub struct VectorFrame {
+    commands: Vec<VectorCommand>,
+}
+
+impl VectorFrame {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn clear(&mut self) {
+        self.commands.clear();
+    }
+
+    pub fn len(&self) -> usize {
+        self.commands.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.commands.is_empty()
+    }
+
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    fn commands(&self) -> &[VectorCommand] {
+        &self.commands
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    fn push_line(
+        &mut self,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+        width: f32,
+        intensity: f32,
+    ) -> Result<(), VectorFrameInputError> {
+        let style = frame_style(red, green, blue, alpha, width, intensity)?;
+        validate_finite(&[x1, y1, x2, y2])?;
+        self.commands.push(VectorCommand::Line(Line {
+            start: Vec2 { x: x1, y: y1 },
+            end: Vec2 { x: x2, y: y2 },
+            style,
+        }));
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    fn push_polyline(
+        &mut self,
+        points: &[f32],
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+        width: f32,
+        intensity: f32,
+    ) -> Result<(), VectorFrameInputError> {
+        let style = frame_style(red, green, blue, alpha, width, intensity)?;
+        let points = frame_points(points, 2, VectorFrameInputError::TooFewPolylinePoints)?;
+        self.commands
+            .push(VectorCommand::Polyline(Polyline { points, style }));
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    fn push_closed_polyline(
+        &mut self,
+        points: &[f32],
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+        width: f32,
+        intensity: f32,
+    ) -> Result<(), VectorFrameInputError> {
+        let style = frame_style(red, green, blue, alpha, width, intensity)?;
+        let mut points =
+            frame_points(points, 3, VectorFrameInputError::TooFewClosedPolylinePoints)?;
+        if points.first() != points.last() {
+            if let Some(first) = points.first().copied() {
+                points.push(first);
+            }
+        }
+        self.commands
+            .push(VectorCommand::Polyline(Polyline { points, style }));
+        Ok(())
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+impl VectorFrame {
+    #[wasm_bindgen(constructor)]
+    pub fn js_new() -> VectorFrame {
+        Self::new()
+    }
+
+    #[wasm_bindgen(js_name = clear)]
+    pub fn js_clear(&mut self) {
+        self.clear();
+    }
+
+    #[wasm_bindgen(js_name = len)]
+    pub fn js_len(&self) -> usize {
+        self.len()
+    }
+
+    #[wasm_bindgen(js_name = isEmpty)]
+    pub fn js_is_empty(&self) -> bool {
+        self.is_empty()
+    }
+
+    #[wasm_bindgen(js_name = line)]
+    #[allow(clippy::too_many_arguments)]
+    pub fn js_line(
+        &mut self,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+        width: f32,
+        intensity: f32,
+    ) -> Result<(), JsValue> {
+        self.push_line(x1, y1, x2, y2, red, green, blue, alpha, width, intensity)
+            .map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = polyline)]
+    #[allow(clippy::too_many_arguments)]
+    pub fn js_polyline(
+        &mut self,
+        points: &[f32],
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+        width: f32,
+        intensity: f32,
+    ) -> Result<(), JsValue> {
+        self.push_polyline(points, red, green, blue, alpha, width, intensity)
+            .map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = closedPolyline)]
+    #[allow(clippy::too_many_arguments)]
+    pub fn js_closed_polyline(
+        &mut self,
+        points: &[f32],
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+        width: f32,
+        intensity: f32,
+    ) -> Result<(), JsValue> {
+        self.push_closed_polyline(points, red, green, blue, alpha, width, intensity)
+            .map_err(JsValue::from)
+    }
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn frame_points(
+    values: &[f32],
+    minimum_points: usize,
+    too_few_error: VectorFrameInputError,
+) -> Result<Vec<Vec2>, VectorFrameInputError> {
+    if values.len() % 2 != 0 {
+        return Err(VectorFrameInputError::InvalidPointArrayLength);
+    }
+    validate_finite(values)?;
+    let points: Vec<Vec2> = values
+        .chunks_exact(2)
+        .map(|xy| Vec2 { x: xy[0], y: xy[1] })
+        .collect();
+    if points.len() < minimum_points {
+        return Err(too_few_error);
+    }
+    Ok(points)
+}
+
+#[allow(clippy::too_many_arguments)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn frame_style(
+    red: f32,
+    green: f32,
+    blue: f32,
+    alpha: f32,
+    width: f32,
+    intensity: f32,
+) -> Result<StrokeStyle, VectorFrameInputError> {
+    validate_finite(&[red, green, blue, alpha, width, intensity])?;
+    if [red, green, blue, alpha]
+        .into_iter()
+        .any(|channel| !(0.0..=1.0).contains(&channel))
+    {
+        return Err(VectorFrameInputError::InvalidColorRange);
+    }
+    if width <= 0.0 {
+        return Err(VectorFrameInputError::InvalidStrokeWidth);
+    }
+    if intensity < 0.0 {
+        return Err(VectorFrameInputError::InvalidIntensity);
+    }
+    Ok(stroke(
+        width,
+        Color {
+            red,
+            green,
+            blue,
+            alpha,
+        },
+        intensity,
+    ))
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn validate_finite(values: &[f32]) -> Result<(), VectorFrameInputError> {
+    if values.iter().all(|value| value.is_finite()) {
+        Ok(())
+    } else {
+        Err(VectorFrameInputError::NonFiniteValue)
+    }
 }
 
 const ARCADE_BALANCED_GLOW: [GlowLayer; 3] = [
@@ -368,6 +667,11 @@ impl WebGPU {
             .map_err(JsValue::from)
     }
 
+    #[wasm_bindgen(js_name = renderFrame)]
+    pub fn render_frame(&mut self, frame: &VectorFrame) -> Result<(), JsValue> {
+        self.render_commands(frame.commands())
+    }
+
     #[wasm_bindgen]
     pub fn render_blasterites_tester(&mut self, time_ms: f64) -> Result<(), JsValue> {
         let window = web_sys::window().ok_or("No window available")?;
@@ -408,6 +712,19 @@ impl WebGPU {
         self.renderer
             .render(&blasterites_tester_scene(wrapped_time_ms), true)
             .map_err(JsValue::from)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl WebGPU {
+    /// Render already-owned Rust vector commands through the same browser
+    /// renderer path as `renderFrame`, without converting them through the
+    /// JavaScript `VectorFrame` builder.
+    pub fn render_commands(&mut self, commands: &[VectorCommand]) -> Result<(), JsValue> {
+        let window = web_sys::window().ok_or("No window available")?;
+        let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
+        self.renderer.resize(width, height);
+        self.renderer.render(commands, false).map_err(JsValue::from)
     }
 }
 
@@ -1316,9 +1633,9 @@ fn push_line_vertices(vertices: &mut Vec<Vertex>, start: Vec2, end: Vec2, style:
     let normal_x = -dy / length * half_width;
     let normal_y = dx / length * half_width;
     let color = [
-        style.color.red * style.intensity,
-        style.color.green * style.intensity,
-        style.color.blue * style.intensity,
+        style.color.red * style.color.alpha * style.intensity,
+        style.color.green * style.color.alpha * style.intensity,
+        style.color.blue * style.color.alpha * style.intensity,
         style.color.alpha,
     ];
 
@@ -1372,9 +1689,9 @@ fn push_glow_line_vertices(
         y: end.y + tangent_y * radius,
     };
     let color = [
-        style.color.red * style.intensity * layer.intensity_scale,
-        style.color.green * style.intensity * layer.intensity_scale,
-        style.color.blue * style.intensity * layer.intensity_scale,
+        style.color.red * style.color.alpha * style.intensity * layer.intensity_scale,
+        style.color.green * style.color.alpha * style.intensity * layer.intensity_scale,
+        style.color.blue * style.color.alpha * style.intensity * layer.intensity_scale,
         style.color.alpha,
     ];
 
@@ -1587,6 +1904,34 @@ mod tests {
     }
 
     #[test]
+    fn transparent_strokes_emit_no_rgb_for_crisp_or_glow() {
+        let transparent_style = StrokeStyle {
+            width: 0.04,
+            color: Color {
+                red: 0.8,
+                green: 0.4,
+                blue: 0.2,
+                alpha: 0.0,
+            },
+            intensity: 2.0,
+        };
+        let commands = [VectorCommand::Line(Line {
+            start: Vec2 { x: -0.75, y: 0.0 },
+            end: Vec2 { x: 0.75, y: 0.0 },
+            style: transparent_style,
+        })];
+        let settings = display_settings_from_preset(VectorDisplayPreset::ArcadeBalanced);
+
+        let crisp_vertices = tessellate_commands(&commands);
+        let glow_vertices = tessellate_glow_commands(&commands, settings);
+
+        assert!(!crisp_vertices.is_empty());
+        assert!(!glow_vertices.is_empty());
+        assert_color_near(crisp_vertices[0].color, [0.0, 0.0, 0.0, 0.0]);
+        assert_color_near(glow_vertices[0].color, [0.0, 0.0, 0.0, 0.0]);
+    }
+
+    #[test]
     fn arcade_balanced_preset_encodes_tuned_defaults() {
         let settings = display_settings_from_preset(VectorDisplayPreset::ArcadeBalanced);
 
@@ -1699,6 +2044,208 @@ mod tests {
         // (t=4000ms) frames differ across the whole scene, so a frozen or
         // static render is caught.
         assert_ne!(pre, scene_bytes(4000.0));
+    }
+
+    #[test]
+    fn vector_frame_builds_line_and_reports_length() {
+        let mut frame = VectorFrame::new();
+
+        frame
+            .push_line(-0.5, 0.0, 0.5, 0.0, 0.2, 0.8, 1.0, 1.0, 0.02, 1.25)
+            .unwrap();
+
+        assert_eq!(frame.len(), 1);
+        assert!(!frame.is_empty());
+        match &frame.commands()[0] {
+            VectorCommand::Line(line) => {
+                assert_eq!(line.start, Vec2 { x: -0.5, y: 0.0 });
+                assert_eq!(line.end, Vec2 { x: 0.5, y: 0.0 });
+                assert_near(line.style.width, 0.02);
+                assert_near(line.style.intensity, 1.25);
+                assert_near(line.style.color.green, 0.8);
+            }
+            VectorCommand::Polyline(_) => panic!("expected line command"),
+        }
+    }
+
+    #[test]
+    fn vector_frame_clear_removes_commands() {
+        let mut frame = VectorFrame::new();
+        frame
+            .push_line(-0.5, 0.0, 0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 0.02, 1.0)
+            .unwrap();
+
+        frame.clear();
+
+        assert!(frame.is_empty());
+        assert_eq!(frame.len(), 0);
+    }
+
+    #[test]
+    fn vector_frame_builds_polyline_from_flat_point_pairs() {
+        let mut frame = VectorFrame::new();
+
+        frame
+            .push_polyline(
+                &[-0.4, -0.1, 0.0, 0.2, 0.4, -0.1],
+                1.0,
+                0.5,
+                0.2,
+                1.0,
+                0.015,
+                0.9,
+            )
+            .unwrap();
+
+        match &frame.commands()[0] {
+            VectorCommand::Polyline(polyline) => {
+                assert_eq!(
+                    polyline.points,
+                    vec![
+                        Vec2 { x: -0.4, y: -0.1 },
+                        Vec2 { x: 0.0, y: 0.2 },
+                        Vec2 { x: 0.4, y: -0.1 },
+                    ]
+                );
+                assert_near(polyline.style.color.red, 1.0);
+                assert_near(polyline.style.width, 0.015);
+            }
+            VectorCommand::Line(_) => panic!("expected polyline command"),
+        }
+    }
+
+    #[test]
+    fn vector_frame_closed_polyline_repeats_open_first_point() {
+        let mut frame = VectorFrame::new();
+
+        frame
+            .push_closed_polyline(
+                &[-0.1, -0.1, 0.1, -0.1, 0.0, 0.1],
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                0.02,
+                1.0,
+            )
+            .unwrap();
+
+        match &frame.commands()[0] {
+            VectorCommand::Polyline(polyline) => {
+                assert_eq!(polyline.points.len(), 4);
+                assert_eq!(polyline.points.first(), polyline.points.last());
+            }
+            VectorCommand::Line(_) => panic!("expected polyline command"),
+        }
+    }
+
+    #[test]
+    fn vector_frame_closed_polyline_does_not_duplicate_already_closed_points() {
+        let mut frame = VectorFrame::new();
+
+        frame
+            .push_closed_polyline(
+                &[-0.1, -0.1, 0.1, -0.1, 0.0, 0.1, -0.1, -0.1],
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                0.02,
+                1.0,
+            )
+            .unwrap();
+
+        match &frame.commands()[0] {
+            VectorCommand::Polyline(polyline) => assert_eq!(polyline.points.len(), 4),
+            VectorCommand::Line(_) => panic!("expected polyline command"),
+        }
+    }
+
+    #[test]
+    fn vector_frame_rejects_malformed_and_non_finite_input() {
+        let mut frame = VectorFrame::new();
+
+        assert_eq!(
+            frame.push_polyline(&[0.0, 0.0, 0.5], 1.0, 1.0, 1.0, 1.0, 0.02, 1.0),
+            Err(VectorFrameInputError::InvalidPointArrayLength)
+        );
+        assert_eq!(
+            frame.push_polyline(&[0.0, 0.0], 1.0, 1.0, 1.0, 1.0, 0.02, 1.0),
+            Err(VectorFrameInputError::TooFewPolylinePoints)
+        );
+        assert_eq!(
+            frame.push_closed_polyline(&[0.0, 0.0, 0.5, 0.0], 1.0, 1.0, 1.0, 1.0, 0.02, 1.0),
+            Err(VectorFrameInputError::TooFewClosedPolylinePoints)
+        );
+        assert_eq!(
+            frame.push_line(0.0, 0.0, f32::NAN, 0.0, 1.0, 1.0, 1.0, 1.0, 0.02, 1.0),
+            Err(VectorFrameInputError::NonFiniteValue)
+        );
+        assert_eq!(
+            frame.push_line(0.0, 0.0, 0.1, 0.1, 1.2, 1.0, 1.0, 1.0, 0.02, 1.0),
+            Err(VectorFrameInputError::InvalidColorRange)
+        );
+        assert_eq!(
+            frame.push_line(0.0, 0.0, 0.1, 0.1, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0),
+            Err(VectorFrameInputError::InvalidStrokeWidth)
+        );
+        assert_eq!(
+            frame.push_line(0.0, 0.0, 0.1, 0.1, 1.0, 1.0, 1.0, 1.0, 0.02, -0.1),
+            Err(VectorFrameInputError::InvalidIntensity)
+        );
+        assert!(frame.is_empty());
+    }
+
+    #[test]
+    fn typed_vector_command_scene_reaches_renderer_geometry_path() {
+        let commands = vec![
+            VectorCommand::Polyline(Polyline {
+                points: vec![
+                    Vec2 { x: -0.7, y: 0.0 },
+                    Vec2 { x: -0.84, y: 0.08 },
+                    Vec2 { x: -0.78, y: 0.0 },
+                    Vec2 { x: -0.84, y: -0.08 },
+                    Vec2 { x: -0.7, y: 0.0 },
+                ],
+                style: white_style(0.018),
+            }),
+            VectorCommand::Polyline(Polyline {
+                points: vec![
+                    Vec2 { x: 0.06, y: -0.24 },
+                    Vec2 { x: 0.28, y: -0.34 },
+                    Vec2 { x: 0.5, y: -0.22 },
+                    Vec2 { x: 0.56, y: 0.02 },
+                    Vec2 { x: 0.42, y: 0.24 },
+                    Vec2 { x: 0.16, y: 0.28 },
+                    Vec2 { x: -0.04, y: 0.1 },
+                    Vec2 { x: 0.06, y: -0.24 },
+                ],
+                style: white_style(0.014),
+            }),
+            VectorCommand::Line(Line {
+                start: Vec2 { x: -0.62, y: 0.0 },
+                end: Vec2 { x: 0.02, y: 0.02 },
+                style: stroke(
+                    0.012,
+                    Color {
+                        red: 0.45,
+                        green: 0.9,
+                        blue: 1.0,
+                        alpha: 1.0,
+                    },
+                    1.45,
+                ),
+            }),
+        ];
+        let settings = display_settings_from_preset(VectorDisplayPreset::ArcadeBalanced);
+
+        let crisp_vertices = tessellate_commands(&commands);
+        let glow_vertices = tessellate_glow_commands(&commands, settings);
+
+        assert!(!crisp_vertices.is_empty());
+        assert!(!glow_vertices.is_empty());
+        assert!(crisp_vertices.len() >= 18);
+        assert_eq!(glow_vertices.len() % settings.glow_layers().len(), 0);
     }
 
     fn line_length(start: Vec2, end: Vec2) -> f32 {
