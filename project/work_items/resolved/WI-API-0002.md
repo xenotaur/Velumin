@@ -2,7 +2,7 @@
 id: WI-API-0002
 title: Validate DP-0008 Against Replication Vector Consumer
 type: evaluation
-status: proposed
+status: resolved
 priority: high
 owner: project maintainers
 contributors:
@@ -24,7 +24,7 @@ depends_on:
 blocked_by: []
 blocked: false
 blocked_reason: null
-resolution: null
+resolution: Validated in PR #29 — EV-0010 proves Replication Vector-owned VectorCommand data renders through Velumin's Rust/WASM WebGPU::render_commands path in a browser runtime; no immediate DP-0008 API expansion is justified by the representative frame.
 expected_actions:
   - create_report
   - run_tests
@@ -53,7 +53,7 @@ required_evidence:
   - test_output
   - validation_output
 artifacts_expected:
-  - project/work_items/proposed/WI-API-0002.md
+  - project/work_items/resolved/WI-API-0002.md
   - project/evidence/EV-0010.md
   - project/status/current_status.md
 ---
