@@ -42,6 +42,7 @@ forbidden_actions:
   - introduce_alternate_renderer
 acceptance:
   - Replication Vector's existing project-owned VectorCommand scene is tested against the Velumin browser renderer path without rebuilding it through JavaScript VectorFrame.
+  - Runtime browser render evidence is captured for that representative frame, unless a WebGPU-capable browser is unavailable and the evaluation records the exact setup mismatch.
   - The evaluation records whether WebGPU::render_commands(&[VectorCommand]) is sufficient for one representative Replication Vector frame.
   - Any concrete gaps are documented with evidence, including camera or view controls, batching or capacity reuse, ring helpers, display settings, wasm packaging, or browser harness friction.
   - The work does not implement Replication Vector gameplay or expand Velumin's public API.
@@ -71,7 +72,7 @@ This item should close that evidence loop before Velumin expands DP-0008, design
 
 ### Duplication search
 - In-repo: Related implementation exists in `WI-API-0001`, `README.md`, and `webgpu_vector_lib/src/lib.rs`, but no existing work item evaluates the API against the real Replication Vector consumer.
-- Sibling repos: Replication Vector has `first_replication_vector_scene() -> Vec<VectorCommand>` and evidence `EV-0004` documenting the previous upstream browser-rendering gap.
+- Sibling repos: Replication Vector has `first_replication_vector_scene() -> Vec<VectorCommand>` and downstream evidence at `ReplicationVector/replication_vector/project/evidence/EV-0004.md` documenting the previous upstream browser-rendering gap.
 - External libraries: No external library should replace this evaluation; the purpose is to dogfood Velumin's own Rust/WASM/WebGPU API from a downstream repo.
 - Recommendation: Proceed with a narrow downstream validation work item.
 
@@ -93,9 +94,10 @@ This item should close that evidence loop before Velumin expands DP-0008, design
 1. Inspect Replication Vector's current scene and validation state.
 2. Attempt a minimal downstream browser-rendering integration using the existing Velumin API.
 3. Prefer the typed Rust/WASM `WebGPU::render_commands(&[VectorCommand])` path for the Replication Vector-owned commands.
-4. Run the relevant Velumin and Replication Vector validation commands available in the session.
-5. Add a Velumin evidence record documenting the result and any concrete gaps.
-6. Update Velumin current status only if the evaluation changes the project's recommended next action.
+4. Capture runtime browser render evidence for the representative frame, such as a smoke run, screenshot, or pixel-validation artifact that would catch a blank or failed frame.
+5. Run the relevant Velumin and Replication Vector validation commands available in the session.
+6. Add a Velumin evidence record documenting the result and any concrete gaps.
+7. Update Velumin current status only if the evaluation changes the project's recommended next action.
 
 ## Non-Goals
 
@@ -108,7 +110,8 @@ This item should close that evidence loop before Velumin expands DP-0008, design
 
 ## Acceptance Criteria
 
-- Replication Vector's existing `VectorCommand` scene is exercised against Velumin's browser renderer path.
+- Replication Vector's existing `VectorCommand` scene is exercised against Velumin's browser renderer path in a browser runtime.
+- The evidence includes a non-skipped browser render or capture result for the representative frame, or leaves the evaluation unresolved with an exact unavailable-browser/setup reason.
 - The evaluation records whether the typed Rust/WASM command-slice path is sufficient for one representative frame.
 - Any API or packaging gaps are documented with exact file/line evidence and validation output.
 - A recommendation is recorded for the next Velumin API direction: DP-0008 follow-up, DP-0007 custom settings, DP-0003 retained scene/material, or no immediate API expansion.
@@ -125,11 +128,12 @@ This item should close that evidence loop before Velumin expands DP-0008, design
 - Replication Vector `scripts/version tools`
 - Replication Vector `scripts/test`
 - Replication Vector `scripts/baseline` or a documented setup-mismatch note if its Velumin checkout/browser build is unavailable
+- Browser runtime render/capture validation for the Replication Vector command frame, or an explicit unresolved result when no WebGPU-capable browser is available
 
 ## Risk Notes
 
 - Replication Vector may need a writable checkout or updated `.deps/velumin`; if unavailable, report a setup/bootstrap mismatch rather than turning the item into speculative design.
-- Browser rendering evidence may depend on WebGPU-capable local Chromium; if unavailable, record exact compile/test evidence and the missing browser-validation condition.
+- Browser rendering evidence may depend on WebGPU-capable local Chromium; if unavailable, record exact compile/test evidence, the missing browser-validation condition, and leave the browser sufficiency question unresolved rather than treating build-only validation as acceptance.
 - A single representative frame can identify API friction but should not be overclaimed as proof that all future game rendering needs are covered.
 - The evaluation may find that no Velumin API change is needed yet; that is a valid outcome.
 
