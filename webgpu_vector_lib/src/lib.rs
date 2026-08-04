@@ -1,5 +1,6 @@
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -220,6 +221,7 @@ impl std::fmt::Display for VectorFrameInputError {
 
 impl std::error::Error for VectorFrameInputError {}
 
+#[cfg(target_arch = "wasm32")]
 impl From<VectorFrameInputError> for JsValue {
     fn from(error: VectorFrameInputError) -> Self {
         JsValue::from_str(&error.to_string())
@@ -1631,9 +1633,9 @@ fn push_line_vertices(vertices: &mut Vec<Vertex>, start: Vec2, end: Vec2, style:
     let normal_x = -dy / length * half_width;
     let normal_y = dx / length * half_width;
     let color = [
-        style.color.red * style.intensity,
-        style.color.green * style.intensity,
-        style.color.blue * style.intensity,
+        style.color.red * style.color.alpha * style.intensity,
+        style.color.green * style.color.alpha * style.intensity,
+        style.color.blue * style.color.alpha * style.intensity,
         style.color.alpha,
     ];
 
@@ -1687,9 +1689,9 @@ fn push_glow_line_vertices(
         y: end.y + tangent_y * radius,
     };
     let color = [
-        style.color.red * style.intensity * layer.intensity_scale,
-        style.color.green * style.intensity * layer.intensity_scale,
-        style.color.blue * style.intensity * layer.intensity_scale,
+        style.color.red * style.color.alpha * style.intensity * layer.intensity_scale,
+        style.color.green * style.color.alpha * style.intensity * layer.intensity_scale,
+        style.color.blue * style.color.alpha * style.intensity * layer.intensity_scale,
         style.color.alpha,
     ];
 
@@ -1899,6 +1901,34 @@ mod tests {
         assert_eq!(vertices[0].segment_end, [0.75, 0.0]);
         assert_near(vertices[0].radius, 0.0154);
         assert_near(vertices[12].radius, 0.0861);
+    }
+
+    #[test]
+    fn transparent_strokes_emit_no_rgb_for_crisp_or_glow() {
+        let transparent_style = StrokeStyle {
+            width: 0.04,
+            color: Color {
+                red: 0.8,
+                green: 0.4,
+                blue: 0.2,
+                alpha: 0.0,
+            },
+            intensity: 2.0,
+        };
+        let commands = [VectorCommand::Line(Line {
+            start: Vec2 { x: -0.75, y: 0.0 },
+            end: Vec2 { x: 0.75, y: 0.0 },
+            style: transparent_style,
+        })];
+        let settings = display_settings_from_preset(VectorDisplayPreset::ArcadeBalanced);
+
+        let crisp_vertices = tessellate_commands(&commands);
+        let glow_vertices = tessellate_glow_commands(&commands, settings);
+
+        assert!(!crisp_vertices.is_empty());
+        assert!(!glow_vertices.is_empty());
+        assert_color_near(crisp_vertices[0].color, [0.0, 0.0, 0.0, 0.0]);
+        assert_color_near(glow_vertices[0].color, [0.0, 0.0, 0.0, 0.0]);
     }
 
     #[test]

@@ -13,6 +13,7 @@ owner: project maintainers
 - DP-0004 is adopted and implemented as the core local/CI validation workflow.
 - DP-0005 is adopted and implemented as the Blasterites tester and tuner browser demos.
 - DP-0006 (Vector CRT renderer) is adopted (2026-07-24) and partially implemented; its remaining follow-ups are tracked, not blocking.
+- DP-0008 (Browser-First Vector Frame API) is adopted and implemented by `WI-API-0001` (PR #27), exposing browser `VectorFrame` submission and a Rust/WASM typed `VectorCommand` slice path.
 
 ## Completed Direction: DP-0001 Modern WebGPU-First Rendering
 - The browser white-line smoke demo is preserved as the baseline.
@@ -38,6 +39,11 @@ owner: project maintainers
 - Landed: a fixed 4:3 centered viewport, additive multi-layer glow compositing, and an internal `VectorDisplayPreset` set with `ArcadeBalanced` as the tuning target — validated by code inspection (`EV-0008`) and browser visual-smoke capture (`EV-0009`). The non-4:3 resize/letterbox path is now captured by the WI-SMOKE-0001 smoke check at wide and tall sizes.
 - Follow-up work under the adopted direction: the automatable/committed screenshot smoke check with wide/tall resize capture (`WI-SMOKE-0001`, done), and the public preset API — decided by the adopted `DP-0007` and implemented in `WI-PRESET-0001`, which also captured the non-default presets. DP-0007's public custom display-settings API remains a deferred follow-up.
 
+## Adopted Direction: DP-0008 Browser-First Vector Frame API
+- Adopted 2026-08-03 and implemented by `WI-API-0001` (PR #27).
+- Landed: a browser `VectorFrame` builder for line, polyline, and closed-polyline command submission; `WebGPU.renderFrame(frame)`; a Rust/WASM `WebGPU::render_commands(&[VectorCommand])` path for downstream consumers that already own typed Velumin command data; README documentation; and the `/?demo=frame-api` deterministic public-frame harness.
+- Follow-up work should be driven by real downstream integration evidence from Replication Vector / Blasterites-style consumers, not by speculative expansion into the full DP-0003 scene/material model.
+
 ## Next Horizon: DP-0002 Cross-Platform Renderer Architecture
 - After the Vector CRT renderer stabilizes, split Velumin toward a platform-neutral core, shared `wgpu` renderer, browser frontend, and later native desktop frontend.
 - Keep the same vector command and renderer model usable by browser and desktop targets where possible.
@@ -47,7 +53,7 @@ owner: project maintainers
 ## Later Directions
 - Add a native `winit` shell that renders the same smoke and tester scenes through the shared renderer.
 - Explore optional Bevy integration only after the core and renderer boundaries are stable.
-- Add richer examples that demonstrate Asteroids-like, Star Castle-like, or Space War-like visuals without turning Velumin into a full game project.
+- Add richer examples or API conveniences that demonstrate Asteroids-like, Star Castle-like, or Space War-like visuals without turning Velumin into a full game project.
 
 ## Settled Defaults
 - WebGPU-first is the default rendering strategy.
@@ -55,4 +61,4 @@ owner: project maintainers
 - WebGL2 compatibility is optional and deferred.
 - Rendering work must include a visible smoke check or pixel/screenshot validation path.
 - `scripts/validate` is the canonical local validation command; `scripts/demos` serves the browser demos.
-- DP-0002 and DP-0003 are proposed follow-up directions after the adopted DP-0001, DP-0004, and DP-0005 baselines.
+- DP-0002 and DP-0003 are proposed follow-up directions after the adopted DP-0001, DP-0004, DP-0005, DP-0006, DP-0007, and DP-0008 baselines.

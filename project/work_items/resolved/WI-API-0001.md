@@ -2,7 +2,7 @@
 id: WI-API-0001
 title: Expose Browser Vector Frame Submission API
 type: deliverable
-status: proposed
+status: resolved
 priority: high
 owner: project maintainers
 contributors:
@@ -14,7 +14,7 @@ related_roadmap:
   - ROADMAP-CORE
 related_workstreams: []
 related_design:
-  - project/design/proposals/proposed/browser-vector-frame-api/00_proposal.md
+  - project/design/proposals/adopted/browser-vector-frame-api/00_proposal.md
   - project/design/proposals/proposed/DP-0002-cross-platform-renderer-architecture.md
   - project/design/proposals/proposed/DP-0003-extensible-2d-scene-material-model.md
   - project/design/proposals/adopted/DP-0005-blasterites-tester-demo-and-visual-smoke.md
@@ -24,7 +24,7 @@ depends_on: []
 blocked_by: []
 blocked: false
 blocked_reason: null
-resolution: null
+resolution: Implemented in PR #27 — public VectorFrame browser API, Rust/WASM WebGPU::render_commands(&[VectorCommand]) path, deterministic frame-api harness, README docs, smoke coverage, alpha-safe vector emission, and validation.
 expected_actions:
   - edit_file
   - run_tests
@@ -55,7 +55,7 @@ artifacts_expected:
   - webgpu_vector_lib/src/lib.rs
   - webgpu_vector_lib/web/index.html
   - README.md
-  - project/work_items/proposed/WI-API-0001.md
+  - project/work_items/resolved/WI-API-0001.md
 ---
 
 # WI-API-0001: Expose Browser Vector Frame Submission API
@@ -66,7 +66,7 @@ Implement the first public browser-facing vector frame submission API described 
 
 ## Problem / Context
 
-DP-0008 proposes Velumin's first public game-facing drawing surface: a browser-first immediate-frame API for line, polyline, and closed-polyline vector geometry. The renderer already consumes `VectorCommand` slices internally, and `velumin-core` already contains the platform-neutral command and style types, but browser consumers cannot yet submit their own frame data.
+DP-0008 defines Velumin's first public game-facing drawing surface: a browser-first immediate-frame API for line, polyline, and closed-polyline vector geometry. The renderer consumes `VectorCommand` slices internally, `velumin-core` contains the platform-neutral command and style types, browser consumers can submit `VectorFrame` data, and Rust/WASM consumers that already own `VectorCommand` values can render a typed command slice without serializing through JavaScript.
 
 This item is the first bounded implementation slice for DP-0008. It should unlock Replication Vector / Blasterites-style harness frames without adopting the full DP-0003 scene/material model, without starting native `winit` work, and without turning Velumin into a game implementation.
 
@@ -78,7 +78,7 @@ This item is the first bounded implementation slice for DP-0008. It should unloc
 
 ### Demand search
 - Work items: No existing `WI-API-0001` or overlapping proposed work item found.
-- Proposals: Found direct demand in `project/design/proposals/proposed/browser-vector-frame-api/00_proposal.md` (`DP-0008`), which names `WI-API-0001` as the first implementation slice.
+- Proposals: Found direct demand in `project/design/proposals/adopted/browser-vector-frame-api/00_proposal.md` (`DP-0008`), which names `WI-API-0001` as the first implementation slice.
 - Backlog: No separate matching backlog entry found.
 - Recommendation: Link this work item to DP-0008; no close/link action needed for an existing work item.
 
@@ -169,7 +169,7 @@ This item is the first bounded implementation slice for DP-0008. It should unloc
 
 - Focus: `project/focus/current_focus.md`
 - Roadmap: `project/roadmap/roadmap.md`
-- Governing proposal: `project/design/proposals/proposed/browser-vector-frame-api/00_proposal.md`
+- Governing proposal: `project/design/proposals/adopted/browser-vector-frame-api/00_proposal.md`
 - Architecture context: `project/design/proposals/proposed/DP-0002-cross-platform-renderer-architecture.md`
 - Future scene model context: `project/design/proposals/proposed/DP-0003-extensible-2d-scene-material-model.md`
 - Renderer direction: `project/design/proposals/adopted/DP-0006-vector-crt-renderer-migration.md`
