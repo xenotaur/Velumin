@@ -14,7 +14,6 @@ related_roadmap:
   - ROADMAP-CORE
 related_workstreams: []
 related_design:
-  - project/evidence/EV-0010.md
   - project/design/proposals/adopted/browser-vector-frame-api/00_proposal.md
   - project/design/proposals/adopted/DP-0007-display-preset-public-api.md
   - project/design/proposals/proposed/DP-0003-extensible-2d-scene-material-model.md
@@ -49,6 +48,7 @@ acceptance:
 required_evidence:
   - manual_review
   - lrh_validate
+  - test_output
   - validation_output
 artifacts_expected:
   - project/work_items/proposed/WI-API-0003.md
@@ -73,7 +73,7 @@ Evaluate the next Velumin public-surface direction after EV-0010 proved that DP-
 - Recommendation: Proceed with a narrow evaluation work item rather than implementing any option immediately.
 
 ### Demand search
-- Work items: No proposed Velumin work item was found for this next public-surface selection; the repository currently has only resolved work items.
+- Work items: No proposed Velumin work item was found for this next public-surface selection before this item was created.
 - Proposals: Found direct demand in DP-0008 and current status/focus: follow-up work should be driven by additional Replication Vector / Blasterites-style consumer pressure, not by speculative expansion. DP-0007, DP-0003, and DP-0002 Phase 3 define candidate directions.
 - Backlog: No separate matching backlog entry was identified during the project search.
 - Recommendation: Link this item to EV-0010, DP-0008, DP-0007, DP-0003, and DP-0002 Phase 3; no close/link action needed.
@@ -103,7 +103,7 @@ Evaluate the next Velumin public-surface direction after EV-0010 proved that DP-
 - Do not implement a DP-0008 API extension, helper, batching control, camera control, ring helper, or capacity-management feature.
 - Do not implement DP-0007 custom display settings.
 - Do not adopt or implement DP-0003 retained scene/material/layer APIs.
-- Do not select or implement DP-0002 Phase 3/native `winit` work.
+- Do not adopt or implement DP-0002 Phase 3/native `winit` work; the evaluation may still recommend that direction if fresh consumer evidence supports it.
 - Do not implement Replication Vector, Blasterites, Asteroids, Star Castle, or any playable game.
 - Do not modify GitHub Actions, validation infrastructure, or CI policy.
 - Do not treat EV-0010's already-validated representative frame as sufficient evidence for a new API expansion by itself.
@@ -122,6 +122,7 @@ Evaluate the next Velumin public-surface direction after EV-0010 proved that DP-
 - `lrh validate`
 - `scripts/format --check --diff`
 - `scripts/lint`
+- `scripts/test`
 
 ## Risk Notes
 
