@@ -2,7 +2,7 @@
 id: WI-API-0003
 title: Select Next Consumer-Driven Public Surface
 type: evaluation
-status: proposed
+status: resolved
 priority: high
 owner: project maintainers
 contributors:
@@ -23,7 +23,7 @@ depends_on:
 blocked_by: []
 blocked: false
 blocked_reason: null
-resolution: null
+resolution: EV-0011 selected a narrow DP-0008 view/viewport mapping follow-up as the next consumer-driven public surface.
 expected_actions:
   - create_report
   - write_docs
@@ -51,7 +51,7 @@ required_evidence:
   - test_output
   - validation_output
 artifacts_expected:
-  - project/work_items/proposed/WI-API-0003.md
+  - project/work_items/resolved/WI-API-0003.md
   - project/evidence/EV-0011.md
   - project/status/current_status.md
 ---
@@ -64,7 +64,7 @@ Evaluate the next Velumin public-surface direction after EV-0010 proved that DP-
 
 ## Problem / Context
 
-`WI-API-0002` and EV-0010 closed the immediate Replication Vector evidence loop: downstream-owned `Vec<VectorCommand>` data can render through Velumin's browser renderer using `WebGPU::render_commands(&[VectorCommand])`, without rebuilding through JavaScript `VectorFrame`. The current control plane therefore warns against expanding DP-0008 solely for that already-validated frame, while still naming several plausible next directions: DP-0007's deferred custom display-settings API, a later evidence-backed DP-0008 follow-up, DP-0003 retained scene/material work, or DP-0002 Phase 3/native `winit` work. This work item should make that choice evidence-backed before implementation begins.
+`WI-API-0002` and EV-0010 closed the immediate Replication Vector evidence loop: downstream-owned `Vec<VectorCommand>` data can render through Velumin's browser renderer using `WebGPU::render_commands(&[VectorCommand])`, without rebuilding through JavaScript `VectorFrame`. The current control plane therefore warns against expanding DP-0008 solely for that already-validated frame, while still naming several plausible next directions: DP-0007's deferred custom display settings, a later evidence-backed DP-0008 follow-up, DP-0003 retained scene/material work, or DP-0002 Phase 3/native `winit` work. This work item should make that choice evidence-backed before implementation begins.
 
 ### Duplication search
 - In-repo: Related work exists but no duplicate work item was found. `WI-API-0001` implemented DP-0008 v1, `WI-API-0002` validated Replication Vector's typed command-slice path, DP-0007 records deferred custom display settings, DP-0003 proposes a broader retained scene/material model, and DP-0002 Phase 3 remains unselected.
