@@ -4,8 +4,8 @@
 // mode (`?frame&t=<ms>`), captures the WebGPU canvas at deterministic tester
 // frames and at 4:3 / wide / tall viewport sizes, and asserts structural
 // properties of the rendered pixels (not all-black, not all-white, bright
-// vector geometry present, pre-impact vs post-impact frames differ, and the
-// non-4:3 letterbox/pillarbox margins are dark).
+// vector geometry present, pre-impact vs post-impact frames differ, and that
+// default 4:3 scenes keep non-4:3 letterbox/pillarbox margins dark).
 //
 // It also compares each capture against a committed reference signature
 // (a normalized coarse luminance grid) with a generous tolerance, to catch
@@ -57,6 +57,7 @@ const CHECKS = [
   { name: "blasterites-wide", url: `${BASE}/?demo=blasterites&frame&t=2000`, viewport: { width: 1280, height: 480 }, aspect: "wide" },
   { name: "blasterites-tall", url: `${BASE}/?demo=blasterites&frame&t=2000`, viewport: { width: 600, height: 900 }, aspect: "tall" },
   { name: "frame-api-4x3", url: `${BASE}/?demo=frame-api&frame&t=2000`, viewport: { width: 1024, height: 768 }, aspect: "4:3" },
+  { name: "frame-api-wide-pixels", url: `${BASE}/?demo=frame-api&frame&t=2000`, viewport: { width: 1280, height: 480 }, aspect: "full-canvas" },
   { name: "tuner-4x3", url: `${BASE}/?demo=tuner&frame&t=2000`, viewport: { width: 1024, height: 768 }, aspect: "4:3" },
   // Non-default display presets (DP-0007 / WI-PRESET-0001), captured on the
   // deterministic pre-impact tester frame so each advertised look has evidence.
@@ -227,7 +228,7 @@ function assertCheck(check, stats) {
   if (stats.avgLum > 90) failures.push(`too bright / washed out: avgLum ${stats.avgLum.toFixed(1)} > 90`);
   if (stats.brightFraction < 0.0002) failures.push(`no geometry: brightFraction ${stats.brightFraction.toExponential(2)}`);
   if (stats.brightFraction > 0.5) failures.push(`geometry fills screen: brightFraction ${stats.brightFraction.toFixed(3)}`);
-  if (check.aspect !== "4:3" && stats.marginBrightFraction > 0.02) {
+  if (check.aspect !== "4:3" && check.aspect !== "full-canvas" && stats.marginBrightFraction > 0.02) {
     failures.push(`letterbox margins not dark: marginBrightFraction ${stats.marginBrightFraction.toFixed(3)}`);
   }
   return failures;
