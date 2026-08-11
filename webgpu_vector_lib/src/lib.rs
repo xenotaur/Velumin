@@ -381,10 +381,22 @@ impl ResolvedVectorFrameView {
         }
     }
 
-    fn map_length_for_direction(self, direction: Vec2) -> f32 {
-        let x = direction.x * self.x_scale;
-        let y = direction.y * self.y_scale;
-        (x * x + y * y).sqrt()
+    fn map_vector(self, vector: Vec2) -> Vec2 {
+        Vec2 {
+            x: vector.x * self.x_scale,
+            y: vector.y * self.y_scale,
+        }
+    }
+
+    fn perpendicular_scale_for_tangent(self, tangent: Vec2) -> f32 {
+        let mapped_tangent = self.map_vector(tangent);
+        let mapped_tangent_length =
+            (mapped_tangent.x * mapped_tangent.x + mapped_tangent.y * mapped_tangent.y).sqrt();
+        if mapped_tangent_length <= f32::EPSILON {
+            0.0
+        } else {
+            (self.x_scale * self.y_scale).abs() / mapped_tangent_length
+        }
     }
 }
 
@@ -1924,6 +1936,10 @@ fn line_basis(start: Vec2, end: Vec2, width: f32) -> Option<LineBasis> {
     })
 }
 
+fn mapped_line_basis(start: Vec2, end: Vec2) -> Option<LineBasis> {
+    line_basis(start, end, 1.0)
+}
+
 fn vertex_color(style: StrokeStyle) -> [f32; 4] {
     [
         style.color.red * style.color.alpha * style.intensity,
@@ -1958,33 +1974,43 @@ fn push_line_vertices_with_view(
         return;
     };
     let color = vertex_color(style);
+    let mapped_start = view.map_point(start);
+    let mapped_end = view.map_point(end);
+    let Some(mapped_basis) = mapped_line_basis(mapped_start, mapped_end) else {
+        return;
+    };
+    let normal_width = style.width * view.perpendicular_scale_for_tangent(basis.tangent) * 0.5;
+    let normal = Vec2 {
+        x: mapped_basis.normal_unit.x * normal_width,
+        y: mapped_basis.normal_unit.y * normal_width,
+    };
 
     let a = Vertex {
-        position: point_array(view.map_point(Vec2 {
-            x: start.x - basis.normal.x,
-            y: start.y - basis.normal.y,
-        })),
+        position: point_array(Vec2 {
+            x: mapped_start.x - normal.x,
+            y: mapped_start.y - normal.y,
+        }),
         color,
     };
     let b = Vertex {
-        position: point_array(view.map_point(Vec2 {
-            x: end.x - basis.normal.x,
-            y: end.y - basis.normal.y,
-        })),
+        position: point_array(Vec2 {
+            x: mapped_end.x - normal.x,
+            y: mapped_end.y - normal.y,
+        }),
         color,
     };
     let c = Vertex {
-        position: point_array(view.map_point(Vec2 {
-            x: end.x + basis.normal.x,
-            y: end.y + basis.normal.y,
-        })),
+        position: point_array(Vec2 {
+            x: mapped_end.x + normal.x,
+            y: mapped_end.y + normal.y,
+        }),
         color,
     };
     let d = Vertex {
-        position: point_array(view.map_point(Vec2 {
-            x: start.x + basis.normal.x,
-            y: start.y + basis.normal.y,
-        })),
+        position: point_array(Vec2 {
+            x: mapped_start.x + normal.x,
+            y: mapped_start.y + normal.y,
+        }),
         color,
     };
 
@@ -2031,26 +2057,33 @@ fn push_glow_line_vertices_with_view(
         return;
     };
     let radius = style.width * layer.width_scale * 0.5;
-    let normal_scale = view.map_length_for_direction(basis.normal_unit);
+    let normal_scale = view.perpendicular_scale_for_tangent(basis.tangent);
     let radius_clip = radius * normal_scale;
     let core_width_clip = style.width * normal_scale;
     let color = glow_color(style, layer);
-    let start_cap = Vec2 {
-        x: start.x - basis.tangent.x * radius,
-        y: start.y - basis.tangent.y * radius,
-    };
-    let end_cap = Vec2 {
-        x: end.x + basis.tangent.x * radius,
-        y: end.y + basis.tangent.y * radius,
-    };
     let mapped_start = view.map_point(start);
     let mapped_end = view.map_point(end);
+    let Some(mapped_basis) = mapped_line_basis(mapped_start, mapped_end) else {
+        return;
+    };
+    let normal = Vec2 {
+        x: mapped_basis.normal_unit.x * radius_clip,
+        y: mapped_basis.normal_unit.y * radius_clip,
+    };
+    let start_cap = Vec2 {
+        x: mapped_start.x - mapped_basis.tangent.x * radius_clip,
+        y: mapped_start.y - mapped_basis.tangent.y * radius_clip,
+    };
+    let end_cap = Vec2 {
+        x: mapped_end.x + mapped_basis.tangent.x * radius_clip,
+        y: mapped_end.y + mapped_basis.tangent.y * radius_clip,
+    };
 
     let a = glow_vertex(
-        view.map_point(Vec2 {
-            x: start_cap.x - basis.normal_unit.x * radius,
-            y: start_cap.y - basis.normal_unit.y * radius,
-        }),
+        Vec2 {
+            x: start_cap.x - normal.x,
+            y: start_cap.y - normal.y,
+        },
         mapped_start,
         mapped_end,
         color,
@@ -2058,10 +2091,10 @@ fn push_glow_line_vertices_with_view(
         core_width_clip,
     );
     let b = glow_vertex(
-        view.map_point(Vec2 {
-            x: end_cap.x - basis.normal_unit.x * radius,
-            y: end_cap.y - basis.normal_unit.y * radius,
-        }),
+        Vec2 {
+            x: end_cap.x - normal.x,
+            y: end_cap.y - normal.y,
+        },
         mapped_start,
         mapped_end,
         color,
@@ -2069,10 +2102,10 @@ fn push_glow_line_vertices_with_view(
         core_width_clip,
     );
     let c = glow_vertex(
-        view.map_point(Vec2 {
-            x: end_cap.x + basis.normal_unit.x * radius,
-            y: end_cap.y + basis.normal_unit.y * radius,
-        }),
+        Vec2 {
+            x: end_cap.x + normal.x,
+            y: end_cap.y + normal.y,
+        },
         mapped_start,
         mapped_end,
         color,
@@ -2080,10 +2113,10 @@ fn push_glow_line_vertices_with_view(
         core_width_clip,
     );
     let d = glow_vertex(
-        view.map_point(Vec2 {
-            x: start_cap.x + basis.normal_unit.x * radius,
-            y: start_cap.y + basis.normal_unit.y * radius,
-        }),
+        Vec2 {
+            x: start_cap.x + normal.x,
+            y: start_cap.y + normal.y,
+        },
         mapped_start,
         mapped_end,
         color,
@@ -2754,6 +2787,47 @@ mod tests {
     }
 
     #[test]
+    fn anisotropic_frame_view_glow_quad_matches_shader_distance_for_diagonal_lines() {
+        let view = VectorFrameView::canvas_pixels(1280.0, 480.0)
+            .unwrap()
+            .resolve(1280, 480);
+        let settings = VectorDisplaySettings::from_layers(
+            &[GlowLayer {
+                width_scale: 2.0,
+                intensity_scale: 0.5,
+            }],
+            1.0,
+        );
+        let vertices = tessellate_glow_commands_with_view(
+            &[VectorCommand::Line(Line {
+                start: Vec2 { x: 120.0, y: 100.0 },
+                end: Vec2 { x: 940.0, y: 360.0 },
+                style: white_style(12.0),
+            })],
+            settings,
+            view,
+        );
+
+        assert_eq!(vertices.len(), 6);
+        let first = vertices[0];
+        let start = Vec2 {
+            x: first.segment_start[0],
+            y: first.segment_start[1],
+        };
+        let end = Vec2 {
+            x: first.segment_end[0],
+            y: first.segment_end[1],
+        };
+        let position = Vec2 {
+            x: first.position[0],
+            y: first.position[1],
+        };
+        let distance = point_line_distance(position, start, end);
+
+        assert_near(distance, first.radius);
+    }
+
+    #[test]
     fn typed_vector_command_scene_reaches_renderer_geometry_path() {
         let commands = vec![
             VectorCommand::Polyline(Polyline {
@@ -2809,6 +2883,13 @@ mod tests {
         let dx = end.x - start.x;
         let dy = end.y - start.y;
         (dx * dx + dy * dy).sqrt()
+    }
+
+    fn point_line_distance(point: Vec2, start: Vec2, end: Vec2) -> f32 {
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        let length = (dx * dx + dy * dy).sqrt();
+        ((point.x - start.x) * dy - (point.y - start.y) * dx).abs() / length
     }
 
     fn assert_vec2_near(actual: [f32; 2], expected: [f32; 2]) {

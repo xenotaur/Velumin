@@ -49,6 +49,13 @@ await init();
 
 const gpu = await WebGPU.createWithPreset("canvas", VectorDisplayPreset.ArcadeBalanced);
 const canvas = document.getElementById("canvas");
+const canvasPixelSize = () => {
+  const scale = window.devicePixelRatio || 1;
+  return {
+    width: Math.max(1, Math.round(canvas.clientWidth * scale)),
+    height: Math.max(1, Math.round(canvas.clientHeight * scale)),
+  };
+};
 const frame = new VectorFrame();
 
 frame.line(-0.6, 0.0, 0.2, 0.0, 0.4, 0.9, 1.0, 1.0, 0.012, 1.4);
@@ -63,7 +70,8 @@ frame.clear();
 // top-left-origin pixel coordinates.
 const pixelFrame = new VectorFrame();
 pixelFrame.line(80, 60, 240, 60, 0.4, 0.9, 1.0, 1.0, 4, 1.4);
-const pixelView = VectorFrameView.canvasPixels(canvas.width, canvas.height);
+const { width, height } = canvasPixelSize();
+const pixelView = VectorFrameView.canvasPixels(width, height);
 gpu.renderFrameWithView(pixelFrame, pixelView);
 ```
 

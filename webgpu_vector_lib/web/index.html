@@ -227,8 +227,8 @@
         function canvasPixelSize() {
             const scale = window.devicePixelRatio || 1;
             return {
-                width: Math.max(1, Math.floor(canvas.clientWidth * scale)),
-                height: Math.max(1, Math.floor(canvas.clientHeight * scale)),
+                width: Math.max(1, Math.round(canvas.clientWidth * scale)),
+                height: Math.max(1, Math.round(canvas.clientHeight * scale)),
             };
         }
 
