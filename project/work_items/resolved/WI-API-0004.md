@@ -2,7 +2,7 @@
 id: WI-API-0004
 title: Expose Browser Frame View Mapping
 type: deliverable
-status: proposed
+status: resolved
 priority: high
 owner: project maintainers
 contributors:
@@ -24,7 +24,7 @@ depends_on:
 blocked_by: []
 blocked: false
 blocked_reason: null
-resolution: null
+resolution: "Implemented and merged in PR #33 (commit 7f8cedc63af79292682b10042918e5b8b47e57f7): public VectorFrameView mapping for centered 4:3, logical extents, and canvas-pixel frame rendering."
 expected_actions:
   - edit_file
   - run_tests
