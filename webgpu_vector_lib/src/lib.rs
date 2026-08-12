@@ -185,6 +185,34 @@ enum VectorFrameInputError {
     InvalidIntensity,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+pub enum VectorFrameViewError {
+    NonFiniteValue,
+    DegenerateExtents,
+}
+
+impl std::fmt::Display for VectorFrameViewError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NonFiniteValue => write!(f, "VectorFrameView values must be finite numbers."),
+            Self::DegenerateExtents => write!(
+                f,
+                "VectorFrameView extents must have non-zero width and height."
+            ),
+        }
+    }
+}
+
+impl std::error::Error for VectorFrameViewError {}
+
+#[cfg(target_arch = "wasm32")]
+impl From<VectorFrameViewError> for JsValue {
+    fn from(error: VectorFrameViewError) -> Self {
+        JsValue::from_str(&error.to_string())
+    }
+}
+
 impl std::fmt::Display for VectorFrameInputError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -215,6 +243,159 @@ impl std::fmt::Display for VectorFrameInputError {
                     "Stroke intensity must be a finite number greater than or equal to 0.0."
                 )
             }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum VectorFrameViewMapping {
+    Centered4x3,
+    LogicalExtents {
+        left: f32,
+        bottom: f32,
+        right: f32,
+        top: f32,
+    },
+}
+
+/// Public render-time coordinate mapping for immediate vector frames.
+///
+/// `VectorFrameView` does not own gameplay camera, wrapping, or object policy.
+/// It only tells the browser renderer how submitted frame coordinates map into
+/// the current canvas for this draw.
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct VectorFrameView {
+    mapping: VectorFrameViewMapping,
+}
+
+impl Default for VectorFrameView {
+    fn default() -> Self {
+        Self::centered_4_3()
+    }
+}
+
+impl VectorFrameView {
+    pub fn centered_4_3() -> Self {
+        Self {
+            mapping: VectorFrameViewMapping::Centered4x3,
+        }
+    }
+
+    pub fn logical_extents(
+        left: f32,
+        bottom: f32,
+        right: f32,
+        top: f32,
+    ) -> Result<Self, VectorFrameViewError> {
+        validate_view_finite(&[left, bottom, right, top])?;
+        if (right - left).abs() <= f32::EPSILON || (top - bottom).abs() <= f32::EPSILON {
+            return Err(VectorFrameViewError::DegenerateExtents);
+        }
+        Ok(Self {
+            mapping: VectorFrameViewMapping::LogicalExtents {
+                left,
+                bottom,
+                right,
+                top,
+            },
+        })
+    }
+
+    pub fn canvas_pixels(width: f32, height: f32) -> Result<Self, VectorFrameViewError> {
+        Self::logical_extents(0.0, height, width, 0.0)
+    }
+
+    fn resolve(self, surface_width: u32, surface_height: u32) -> ResolvedVectorFrameView {
+        match self.mapping {
+            VectorFrameViewMapping::Centered4x3 => ResolvedVectorFrameView {
+                viewport: RenderViewport::centered_4_3(surface_width, surface_height),
+                x_scale: 1.0,
+                y_scale: 1.0,
+                x_offset: 0.0,
+                y_offset: 0.0,
+            },
+            VectorFrameViewMapping::LogicalExtents {
+                left,
+                bottom,
+                right,
+                top,
+            } => {
+                let x_scale = 2.0 / (right - left);
+                let y_scale = 2.0 / (top - bottom);
+                ResolvedVectorFrameView {
+                    viewport: RenderViewport {
+                        x: 0,
+                        y: 0,
+                        width: surface_width.max(1),
+                        height: surface_height.max(1),
+                    },
+                    x_scale,
+                    y_scale,
+                    x_offset: -1.0 - left * x_scale,
+                    y_offset: -1.0 - bottom * y_scale,
+                }
+            }
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+impl VectorFrameView {
+    #[wasm_bindgen(js_name = centered4x3)]
+    pub fn js_centered_4_3() -> VectorFrameView {
+        Self::centered_4_3()
+    }
+
+    #[wasm_bindgen(js_name = logicalExtents)]
+    pub fn js_logical_extents(
+        left: f32,
+        bottom: f32,
+        right: f32,
+        top: f32,
+    ) -> Result<VectorFrameView, JsValue> {
+        Self::logical_extents(left, bottom, right, top).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = canvasPixels)]
+    pub fn js_canvas_pixels(width: f32, height: f32) -> Result<VectorFrameView, JsValue> {
+        Self::canvas_pixels(width, height).map_err(JsValue::from)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct ResolvedVectorFrameView {
+    viewport: RenderViewport,
+    x_scale: f32,
+    y_scale: f32,
+    x_offset: f32,
+    y_offset: f32,
+}
+
+impl ResolvedVectorFrameView {
+    fn map_point(self, point: Vec2) -> Vec2 {
+        Vec2 {
+            x: point.x * self.x_scale + self.x_offset,
+            y: point.y * self.y_scale + self.y_offset,
+        }
+    }
+
+    fn map_vector(self, vector: Vec2) -> Vec2 {
+        Vec2 {
+            x: vector.x * self.x_scale,
+            y: vector.y * self.y_scale,
+        }
+    }
+
+    fn perpendicular_scale_for_tangent(self, tangent: Vec2) -> f32 {
+        let mapped_tangent = self.map_vector(tangent);
+        let mapped_tangent_length =
+            (mapped_tangent.x * mapped_tangent.x + mapped_tangent.y * mapped_tangent.y).sqrt();
+        if mapped_tangent_length <= f32::EPSILON {
+            0.0
+        } else {
+            (self.x_scale * self.y_scale).abs() / mapped_tangent_length
         }
     }
 }
@@ -470,6 +651,15 @@ fn validate_finite(values: &[f32]) -> Result<(), VectorFrameInputError> {
     }
 }
 
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn validate_view_finite(values: &[f32]) -> Result<(), VectorFrameViewError> {
+    if values.iter().all(|value| value.is_finite()) {
+        Ok(())
+    } else {
+        Err(VectorFrameViewError::NonFiniteValue)
+    }
+}
+
 const ARCADE_BALANCED_GLOW: [GlowLayer; 3] = [
     GlowLayer {
         width_scale: 2.2,
@@ -550,6 +740,7 @@ extern "C" {
 pub struct WebGPU {
     canvas: web_sys::HtmlCanvasElement,
     renderer: Renderer,
+    frame_view: VectorFrameView,
 }
 
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
@@ -647,7 +838,11 @@ impl WebGPU {
 
         let renderer = Renderer::new(surface, &adapter, width, height, preset).await?;
 
-        Ok(WebGPU { canvas, renderer })
+        Ok(WebGPU {
+            canvas,
+            renderer,
+            frame_view: VectorFrameView::default(),
+        })
     }
 
     /// Switch the active display preset at runtime. Takes effect on the next
@@ -657,19 +852,41 @@ impl WebGPU {
         self.renderer.display_settings = display_settings_from_preset(preset);
     }
 
+    /// Set the default coordinate mapping used by `renderFrame` and the
+    /// Rust/WASM `render_commands` path. Existing consumers keep centered 4:3
+    /// unless they opt into a different view.
+    #[wasm_bindgen(js_name = setFrameView)]
+    pub fn set_frame_view(&mut self, view: &VectorFrameView) {
+        self.frame_view = *view;
+    }
+
+    #[wasm_bindgen(js_name = resetFrameView)]
+    pub fn reset_frame_view(&mut self) {
+        self.frame_view = VectorFrameView::default();
+    }
+
     #[wasm_bindgen]
     pub fn render(&mut self) -> Result<(), JsValue> {
         let window = web_sys::window().ok_or("No window available")?;
         let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
         self.renderer.resize(width, height);
         self.renderer
-            .render(&smoke_scene(), false)
+            .render(&smoke_scene(), false, VectorFrameView::default())
             .map_err(JsValue::from)
     }
 
     #[wasm_bindgen(js_name = renderFrame)]
     pub fn render_frame(&mut self, frame: &VectorFrame) -> Result<(), JsValue> {
         self.render_commands(frame.commands())
+    }
+
+    #[wasm_bindgen(js_name = renderFrameWithView)]
+    pub fn render_frame_with_view(
+        &mut self,
+        frame: &VectorFrame,
+        view: &VectorFrameView,
+    ) -> Result<(), JsValue> {
+        self.render_commands_with_view(frame.commands(), *view)
     }
 
     #[wasm_bindgen]
@@ -679,7 +896,11 @@ impl WebGPU {
         self.renderer.resize(width, height);
         let wrapped_time_ms = time_ms.rem_euclid(BLASTERITES_CYCLE_MS as f64) as f32;
         self.renderer
-            .render(&blasterites_tester_scene(wrapped_time_ms), true)
+            .render(
+                &blasterites_tester_scene(wrapped_time_ms),
+                true,
+                VectorFrameView::default(),
+            )
             .map_err(JsValue::from)
     }
 
@@ -710,7 +931,11 @@ impl WebGPU {
         );
         let wrapped_time_ms = time_ms.rem_euclid(BLASTERITES_CYCLE_MS as f64) as f32;
         self.renderer
-            .render(&blasterites_tester_scene(wrapped_time_ms), true)
+            .render(
+                &blasterites_tester_scene(wrapped_time_ms),
+                true,
+                VectorFrameView::default(),
+            )
             .map_err(JsValue::from)
     }
 }
@@ -721,10 +946,22 @@ impl WebGPU {
     /// renderer path as `renderFrame`, without converting them through the
     /// JavaScript `VectorFrame` builder.
     pub fn render_commands(&mut self, commands: &[VectorCommand]) -> Result<(), JsValue> {
+        self.render_commands_with_view(commands, self.frame_view)
+    }
+
+    /// Render already-owned Rust vector commands with an explicit coordinate
+    /// mapping, sharing the same renderer path as `renderFrameWithView`.
+    pub fn render_commands_with_view(
+        &mut self,
+        commands: &[VectorCommand],
+        view: VectorFrameView,
+    ) -> Result<(), JsValue> {
         let window = web_sys::window().ok_or("No window available")?;
         let (width, height) = resize_canvas_to_display_size(&window, &self.canvas)?;
         self.renderer.resize(width, height);
-        self.renderer.render(commands, false).map_err(JsValue::from)
+        self.renderer
+            .render(commands, false, view)
+            .map_err(JsValue::from)
     }
 }
 
@@ -959,9 +1196,10 @@ impl Renderer {
         &mut self,
         commands: &[VectorCommand],
         tester_effects: bool,
+        frame_view: VectorFrameView,
     ) -> Result<(), RendererError> {
         renderer_log("Starting render call");
-        self.upload_vector_commands(commands);
+        self.upload_vector_commands(commands, frame_view);
 
         let frame = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(frame)
@@ -983,8 +1221,12 @@ impl Renderer {
                 label: Some("Render Encoder"),
             });
 
-        let surface_viewport = RenderViewport::centered_4_3(self.config.width, self.config.height);
-        let glow_viewport = RenderViewport::centered_4_3(self.glow_width, self.glow_height);
+        let surface_viewport = frame_view
+            .resolve(self.config.width, self.config.height)
+            .viewport;
+        let glow_viewport = frame_view
+            .resolve(self.glow_width, self.glow_height)
+            .viewport;
 
         {
             let mut glow_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -1075,11 +1317,13 @@ impl Renderer {
         Ok(())
     }
 
-    fn upload_vector_commands(&mut self, commands: &[VectorCommand]) {
-        let vertices = tessellate_commands_with_style_scale(
+    fn upload_vector_commands(&mut self, commands: &[VectorCommand], frame_view: VectorFrameView) {
+        let render_view = frame_view.resolve(self.config.width, self.config.height);
+        let vertices = tessellate_commands_with_view(
             commands,
             self.display_settings.stroke_width_scale(),
             1.0,
+            render_view,
         );
         self.vertex_count = upload_vertices(
             &self.device,
@@ -1090,7 +1334,9 @@ impl Renderer {
             &mut self.vertex_capacity,
         );
 
-        let glow_vertices = tessellate_glow_commands(commands, self.display_settings);
+        let glow_view = frame_view.resolve(self.glow_width, self.glow_height);
+        let glow_vertices =
+            tessellate_glow_commands_with_view(commands, self.display_settings, glow_view);
         self.glow_vertex_count = upload_glow_vertices(
             &self.device,
             &self.queue,
@@ -1552,25 +1798,42 @@ fn tessellate_commands_with_style_scale(
     width_scale: f32,
     intensity_scale: f32,
 ) -> Vec<Vertex> {
+    tessellate_commands_with_view(
+        commands,
+        width_scale,
+        intensity_scale,
+        VectorFrameView::default().resolve(1, 1),
+    )
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn tessellate_commands_with_view(
+    commands: &[VectorCommand],
+    width_scale: f32,
+    intensity_scale: f32,
+    view: ResolvedVectorFrameView,
+) -> Vec<Vertex> {
     let mut vertices = Vec::new();
 
     for command in commands {
         match command {
             VectorCommand::Line(line) => {
-                push_line_vertices(
+                push_line_vertices_with_view(
                     &mut vertices,
                     line.start,
                     line.end,
                     scaled_style(line.style, width_scale, intensity_scale),
+                    view,
                 );
             }
             VectorCommand::Polyline(polyline) => {
                 for points in polyline.points.windows(2) {
-                    push_line_vertices(
+                    push_line_vertices_with_view(
                         &mut vertices,
                         points[0],
                         points[1],
                         scaled_style(polyline.style, width_scale, intensity_scale),
+                        view,
                     );
                 }
             }
@@ -1580,29 +1843,47 @@ fn tessellate_commands_with_style_scale(
     vertices
 }
 
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+#[allow(dead_code)]
 fn tessellate_glow_commands(
     commands: &[VectorCommand],
     settings: VectorDisplaySettings,
 ) -> Vec<GlowVertex> {
+    tessellate_glow_commands_with_view(commands, settings, VectorFrameView::default().resolve(1, 1))
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn tessellate_glow_commands_with_view(
+    commands: &[VectorCommand],
+    settings: VectorDisplaySettings,
+    view: ResolvedVectorFrameView,
+) -> Vec<GlowVertex> {
     let mut vertices = Vec::new();
+    let stroke_width_scale = settings.stroke_width_scale();
 
     for layer in settings.glow_layers() {
         for command in commands {
             match command {
                 VectorCommand::Line(line) => {
-                    push_glow_line_vertices(
+                    push_glow_line_vertices_with_view(
                         &mut vertices,
                         line.start,
                         line.end,
-                        scaled_style(line.style, settings.stroke_width_scale(), 1.0),
+                        scaled_style(line.style, stroke_width_scale, 1.0),
                         *layer,
+                        view,
                     );
                 }
                 VectorCommand::Polyline(polyline) => {
-                    let style = scaled_style(polyline.style, settings.stroke_width_scale(), 1.0);
+                    let style = scaled_style(polyline.style, stroke_width_scale, 1.0);
                     for points in polyline.points.windows(2) {
-                        push_glow_line_vertices(&mut vertices, points[0], points[1], style, *layer);
+                        push_glow_line_vertices_with_view(
+                            &mut vertices,
+                            points[0],
+                            points[1],
+                            style,
+                            *layer,
+                            view,
+                        );
                     }
                 }
             }
@@ -1620,39 +1901,143 @@ fn scaled_style(style: StrokeStyle, width_scale: f32, intensity_scale: f32) -> S
     }
 }
 
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-fn push_line_vertices(vertices: &mut Vec<Vertex>, start: Vec2, end: Vec2, style: StrokeStyle) {
+#[derive(Clone, Copy)]
+struct LineBasis {
+    tangent: Vec2,
+    normal_unit: Vec2,
+    normal: Vec2,
+}
+
+fn line_basis(start: Vec2, end: Vec2, width: f32) -> Option<LineBasis> {
     let dx = end.x - start.x;
     let dy = end.y - start.y;
     let length = (dx * dx + dy * dy).sqrt();
-    if length <= f32::EPSILON || style.width <= 0.0 {
-        return;
+    if length <= f32::EPSILON || width <= 0.0 {
+        return None;
     }
 
-    let half_width = style.width * 0.5;
-    let normal_x = -dy / length * half_width;
-    let normal_y = dx / length * half_width;
-    let color = [
+    let tangent = Vec2 {
+        x: dx / length,
+        y: dy / length,
+    };
+    let normal_unit = Vec2 {
+        x: -tangent.y,
+        y: tangent.x,
+    };
+    let half_width = width * 0.5;
+
+    Some(LineBasis {
+        tangent,
+        normal_unit,
+        normal: Vec2 {
+            x: normal_unit.x * half_width,
+            y: normal_unit.y * half_width,
+        },
+    })
+}
+
+fn mapped_line_basis(start: Vec2, end: Vec2) -> Option<LineBasis> {
+    line_basis(start, end, 1.0)
+}
+
+fn vertex_color(style: StrokeStyle) -> [f32; 4] {
+    [
         style.color.red * style.color.alpha * style.intensity,
         style.color.green * style.color.alpha * style.intensity,
         style.color.blue * style.color.alpha * style.intensity,
         style.color.alpha,
-    ];
+    ]
+}
+
+fn glow_color(style: StrokeStyle, layer: GlowLayer) -> [f32; 4] {
+    [
+        style.color.red * style.color.alpha * style.intensity * layer.intensity_scale,
+        style.color.green * style.color.alpha * style.intensity * layer.intensity_scale,
+        style.color.blue * style.color.alpha * style.intensity * layer.intensity_scale,
+        style.color.alpha,
+    ]
+}
+
+fn point_array(point: Vec2) -> [f32; 2] {
+    [point.x, point.y]
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn push_line_vertices_with_view(
+    vertices: &mut Vec<Vertex>,
+    start: Vec2,
+    end: Vec2,
+    style: StrokeStyle,
+    view: ResolvedVectorFrameView,
+) {
+    let Some(basis) = line_basis(start, end, style.width) else {
+        return;
+    };
+    let color = vertex_color(style);
+    let mapped_start = view.map_point(start);
+    let mapped_end = view.map_point(end);
+    let Some(mapped_basis) = mapped_line_basis(mapped_start, mapped_end) else {
+        return;
+    };
+    let normal_width = style.width * view.perpendicular_scale_for_tangent(basis.tangent) * 0.5;
+    let normal = Vec2 {
+        x: mapped_basis.normal_unit.x * normal_width,
+        y: mapped_basis.normal_unit.y * normal_width,
+    };
 
     let a = Vertex {
-        position: [start.x - normal_x, start.y - normal_y],
+        position: point_array(Vec2 {
+            x: mapped_start.x - normal.x,
+            y: mapped_start.y - normal.y,
+        }),
         color,
     };
     let b = Vertex {
-        position: [end.x - normal_x, end.y - normal_y],
+        position: point_array(Vec2 {
+            x: mapped_end.x - normal.x,
+            y: mapped_end.y - normal.y,
+        }),
         color,
     };
     let c = Vertex {
-        position: [end.x + normal_x, end.y + normal_y],
+        position: point_array(Vec2 {
+            x: mapped_end.x + normal.x,
+            y: mapped_end.y + normal.y,
+        }),
         color,
     };
     let d = Vertex {
-        position: [start.x + normal_x, start.y + normal_y],
+        position: point_array(Vec2 {
+            x: mapped_start.x + normal.x,
+            y: mapped_start.y + normal.y,
+        }),
+        color,
+    };
+
+    vertices.extend_from_slice(&[a, b, c, a, c, d]);
+}
+
+#[allow(dead_code)]
+fn push_line_vertices(vertices: &mut Vec<Vertex>, start: Vec2, end: Vec2, style: StrokeStyle) {
+    let Some(basis) = line_basis(start, end, style.width) else {
+        return;
+    };
+    let color = vertex_color(style);
+
+    let a = Vertex {
+        position: [start.x - basis.normal.x, start.y - basis.normal.y],
+        color,
+    };
+    let b = Vertex {
+        position: [end.x - basis.normal.x, end.y - basis.normal.y],
+        color,
+    };
+    let c = Vertex {
+        position: [end.x + basis.normal.x, end.y + basis.normal.y],
+        color,
+    };
+    let d = Vertex {
+        position: [start.x + basis.normal.x, start.y + basis.normal.y],
         color,
     };
 
@@ -1660,6 +2045,89 @@ fn push_line_vertices(vertices: &mut Vec<Vertex>, start: Vec2, end: Vec2, style:
 }
 
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn push_glow_line_vertices_with_view(
+    vertices: &mut Vec<GlowVertex>,
+    start: Vec2,
+    end: Vec2,
+    style: StrokeStyle,
+    layer: GlowLayer,
+    view: ResolvedVectorFrameView,
+) {
+    let Some(basis) = line_basis(start, end, style.width) else {
+        return;
+    };
+    let radius = style.width * layer.width_scale * 0.5;
+    let normal_scale = view.perpendicular_scale_for_tangent(basis.tangent);
+    let radius_clip = radius * normal_scale;
+    let core_width_clip = style.width * normal_scale;
+    let color = glow_color(style, layer);
+    let mapped_start = view.map_point(start);
+    let mapped_end = view.map_point(end);
+    let Some(mapped_basis) = mapped_line_basis(mapped_start, mapped_end) else {
+        return;
+    };
+    let normal = Vec2 {
+        x: mapped_basis.normal_unit.x * radius_clip,
+        y: mapped_basis.normal_unit.y * radius_clip,
+    };
+    let start_cap = Vec2 {
+        x: mapped_start.x - mapped_basis.tangent.x * radius_clip,
+        y: mapped_start.y - mapped_basis.tangent.y * radius_clip,
+    };
+    let end_cap = Vec2 {
+        x: mapped_end.x + mapped_basis.tangent.x * radius_clip,
+        y: mapped_end.y + mapped_basis.tangent.y * radius_clip,
+    };
+
+    let a = glow_vertex(
+        Vec2 {
+            x: start_cap.x - normal.x,
+            y: start_cap.y - normal.y,
+        },
+        mapped_start,
+        mapped_end,
+        color,
+        radius_clip,
+        core_width_clip,
+    );
+    let b = glow_vertex(
+        Vec2 {
+            x: end_cap.x - normal.x,
+            y: end_cap.y - normal.y,
+        },
+        mapped_start,
+        mapped_end,
+        color,
+        radius_clip,
+        core_width_clip,
+    );
+    let c = glow_vertex(
+        Vec2 {
+            x: end_cap.x + normal.x,
+            y: end_cap.y + normal.y,
+        },
+        mapped_start,
+        mapped_end,
+        color,
+        radius_clip,
+        core_width_clip,
+    );
+    let d = glow_vertex(
+        Vec2 {
+            x: start_cap.x + normal.x,
+            y: start_cap.y + normal.y,
+        },
+        mapped_start,
+        mapped_end,
+        color,
+        radius_clip,
+        core_width_clip,
+    );
+
+    vertices.extend_from_slice(&[a, b, c, a, c, d]);
+}
+
+#[allow(dead_code)]
 fn push_glow_line_vertices(
     vertices: &mut Vec<GlowVertex>,
     start: Vec2,
@@ -2197,6 +2665,169 @@ mod tests {
     }
 
     #[test]
+    fn vector_frame_view_rejects_invalid_extents() {
+        assert_eq!(
+            VectorFrameView::logical_extents(0.0, 0.0, 0.0, 1.0),
+            Err(VectorFrameViewError::DegenerateExtents)
+        );
+        assert_eq!(
+            VectorFrameView::logical_extents(0.0, f32::NAN, 1.0, 1.0),
+            Err(VectorFrameViewError::NonFiniteValue)
+        );
+    }
+
+    #[test]
+    fn default_frame_view_keeps_centered_four_by_three_viewport() {
+        assert_eq!(
+            VectorFrameView::default().resolve(1600, 600).viewport,
+            RenderViewport {
+                x: 400,
+                y: 0,
+                width: 800,
+                height: 600,
+            }
+        );
+    }
+
+    #[test]
+    fn canvas_pixel_frame_view_maps_top_left_pixels_to_full_viewport_clip_space() {
+        let view = VectorFrameView::canvas_pixels(800.0, 600.0)
+            .unwrap()
+            .resolve(1280, 480);
+
+        assert_eq!(
+            view.viewport,
+            RenderViewport {
+                x: 0,
+                y: 0,
+                width: 1280,
+                height: 480,
+            }
+        );
+        let top_left = view.map_point(Vec2 { x: 0.0, y: 0.0 });
+        let bottom_right = view.map_point(Vec2 { x: 800.0, y: 600.0 });
+
+        assert_vec2_near([top_left.x, top_left.y], [-1.0, 1.0]);
+        assert_vec2_near([bottom_right.x, bottom_right.y], [1.0, -1.0]);
+    }
+
+    #[test]
+    fn frame_view_mapping_shared_by_vector_frame_and_typed_commands() {
+        let style = stroke(
+            8.0,
+            Color {
+                red: 0.45,
+                green: 0.9,
+                blue: 1.0,
+                alpha: 1.0,
+            },
+            1.25,
+        );
+        let typed_commands = [VectorCommand::Line(Line {
+            start: Vec2 { x: 0.0, y: 0.0 },
+            end: Vec2 { x: 800.0, y: 0.0 },
+            style,
+        })];
+        let mut frame = VectorFrame::new();
+        frame
+            .push_line(0.0, 0.0, 800.0, 0.0, 0.45, 0.9, 1.0, 1.0, 8.0, 1.25)
+            .unwrap();
+        let view = VectorFrameView::canvas_pixels(800.0, 600.0)
+            .unwrap()
+            .resolve(800, 600);
+
+        let frame_vertices = tessellate_commands_with_view(frame.commands(), 1.0, 1.0, view);
+        let typed_vertices = tessellate_commands_with_view(&typed_commands, 1.0, 1.0, view);
+
+        assert_eq!(frame_vertices.len(), 6);
+        assert_eq!(typed_vertices.len(), 6);
+        assert_eq!(
+            bytemuck::cast_slice::<Vertex, u8>(&frame_vertices),
+            bytemuck::cast_slice::<Vertex, u8>(&typed_vertices)
+        );
+    }
+
+    #[test]
+    fn canvas_pixel_frame_view_preserves_horizontal_and_vertical_stroke_widths() {
+        let view = VectorFrameView::canvas_pixels(1280.0, 480.0)
+            .unwrap()
+            .resolve(1280, 480);
+        let style = white_style(10.0);
+        let horizontal = tessellate_commands_with_view(
+            &[VectorCommand::Line(Line {
+                start: Vec2 { x: 0.0, y: 120.0 },
+                end: Vec2 {
+                    x: 1280.0,
+                    y: 120.0,
+                },
+                style,
+            })],
+            1.0,
+            1.0,
+            view,
+        );
+        let vertical = tessellate_commands_with_view(
+            &[VectorCommand::Line(Line {
+                start: Vec2 { x: 320.0, y: 0.0 },
+                end: Vec2 { x: 320.0, y: 480.0 },
+                style,
+            })],
+            1.0,
+            1.0,
+            view,
+        );
+
+        let horizontal_clip_width = horizontal[2].position[1] - horizontal[0].position[1];
+        let vertical_clip_width = vertical[2].position[0] - vertical[0].position[0];
+        let horizontal_pixels = horizontal_clip_width.abs() * view.viewport.height as f32 * 0.5;
+        let vertical_pixels = vertical_clip_width.abs() * view.viewport.width as f32 * 0.5;
+
+        assert_near(horizontal_pixels, 10.0);
+        assert_near(vertical_pixels, 10.0);
+    }
+
+    #[test]
+    fn anisotropic_frame_view_glow_quad_matches_shader_distance_for_diagonal_lines() {
+        let view = VectorFrameView::canvas_pixels(1280.0, 480.0)
+            .unwrap()
+            .resolve(1280, 480);
+        let settings = VectorDisplaySettings::from_layers(
+            &[GlowLayer {
+                width_scale: 2.0,
+                intensity_scale: 0.5,
+            }],
+            1.0,
+        );
+        let vertices = tessellate_glow_commands_with_view(
+            &[VectorCommand::Line(Line {
+                start: Vec2 { x: 120.0, y: 100.0 },
+                end: Vec2 { x: 940.0, y: 360.0 },
+                style: white_style(12.0),
+            })],
+            settings,
+            view,
+        );
+
+        assert_eq!(vertices.len(), 6);
+        let first = vertices[0];
+        let start = Vec2 {
+            x: first.segment_start[0],
+            y: first.segment_start[1],
+        };
+        let end = Vec2 {
+            x: first.segment_end[0],
+            y: first.segment_end[1],
+        };
+        let position = Vec2 {
+            x: first.position[0],
+            y: first.position[1],
+        };
+        let distance = point_line_distance(position, start, end);
+
+        assert_near(distance, first.radius);
+    }
+
+    #[test]
     fn typed_vector_command_scene_reaches_renderer_geometry_path() {
         let commands = vec![
             VectorCommand::Polyline(Polyline {
@@ -2252,6 +2883,13 @@ mod tests {
         let dx = end.x - start.x;
         let dy = end.y - start.y;
         (dx * dx + dy * dy).sqrt()
+    }
+
+    fn point_line_distance(point: Vec2, start: Vec2, end: Vec2) -> f32 {
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        let length = (dx * dx + dy * dy).sqrt();
+        ((point.x - start.x) * dy - (point.y - start.y) * dx).abs() / length
     }
 
     fn assert_vec2_near(actual: [f32; 2], expected: [f32; 2]) {

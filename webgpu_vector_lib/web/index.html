@@ -170,8 +170,9 @@
     </section>
     <div id="status" role="status" aria-live="polite"></div>
     <script type="module">
-        import init, { VectorFrame, WebGPU, VectorDisplayPreset } from "@pkg/webgpu_vector_lib.js";
+        import init, { VectorFrame, VectorFrameView, WebGPU, VectorDisplayPreset } from "@pkg/webgpu_vector_lib.js";
 
+        const canvas = document.getElementById("canvas");
         const status = document.getElementById("status");
         const tuner = document.getElementById("tuner");
         const params = new URLSearchParams(window.location.search);
@@ -223,41 +224,68 @@
             return new Float32Array(points);
         }
 
-        function buildFrameApiHarness(time = 0) {
+        function canvasPixelSize() {
+            const scale = window.devicePixelRatio || 1;
+            return {
+                width: Math.max(1, Math.round(canvas.clientWidth * scale)),
+                height: Math.max(1, Math.round(canvas.clientHeight * scale)),
+            };
+        }
+
+        function buildFrameApiHarness(width, height, time = 0) {
             const frame = new VectorFrame();
             const pulse = 0.9 + 0.1 * Math.sin(time * 0.004);
+            const unit = Math.min(width, height);
+            const shipX = width * 0.18;
+            const shipY = height * 0.5;
+            const centerX = width * 0.56;
+            const centerY = height * 0.5;
+            const asteroidX = width * 0.76;
+            const asteroidY = height * 0.42;
 
             frame.closedPolyline(
-                new Float32Array([-0.72, 0.0, -0.86, 0.075, -0.8, 0.0, -0.86, -0.075]),
-                0.72, 0.92, 1.0, 1.0, 0.018, 1.25 * pulse,
+                new Float32Array([
+                    shipX + unit * 0.11, shipY,
+                    shipX - unit * 0.03, shipY - unit * 0.07,
+                    shipX + unit * 0.03, shipY,
+                    shipX - unit * 0.03, shipY + unit * 0.07,
+                ]),
+                0.72, 0.92, 1.0, 1.0, unit * 0.012, 1.25 * pulse,
             );
-            frame.line(-0.9, 0.0, -1.0, 0.0, 0.35, 0.75, 1.0, 1.0, 0.01, 1.1);
-            frame.line(-0.86, 0.04, -0.96, 0.075, 0.35, 0.75, 1.0, 1.0, 0.008, 0.9);
-            frame.line(-0.86, -0.04, -0.96, -0.075, 0.35, 0.75, 1.0, 1.0, 0.008, 0.9);
+            frame.line(shipX - unit * 0.06, shipY, shipX - unit * 0.16, shipY, 0.35, 0.75, 1.0, 1.0, unit * 0.007, 1.1);
+            frame.line(shipX - unit * 0.02, shipY - unit * 0.04, shipX - unit * 0.12, shipY - unit * 0.075, 0.35, 0.75, 1.0, 1.0, unit * 0.006, 0.9);
+            frame.line(shipX - unit * 0.02, shipY + unit * 0.04, shipX - unit * 0.12, shipY + unit * 0.075, 0.35, 0.75, 1.0, 1.0, unit * 0.006, 0.9);
 
-            for (const radius of [0.19, 0.29, 0.39]) {
-                frame.polyline(ringSegment(0.28, 0.02, radius, 0.06, 0.38), 0.9, 0.95, 1.0, 1.0, 0.011, 0.95);
-                frame.polyline(ringSegment(0.28, 0.02, radius, 0.48, 0.8), 0.9, 0.95, 1.0, 1.0, 0.011, 0.95);
+            for (const radius of [0.15, 0.23, 0.31].map((value) => value * unit)) {
+                frame.polyline(ringSegment(centerX, centerY, radius, 0.06, 0.38), 0.9, 0.95, 1.0, 1.0, unit * 0.008, 0.95);
+                frame.polyline(ringSegment(centerX, centerY, radius, 0.48, 0.8), 0.9, 0.95, 1.0, 1.0, unit * 0.008, 0.95);
             }
 
             frame.closedPolyline(
-                new Float32Array([0.2, -0.06, 0.36, -0.06, 0.42, 0.02, 0.36, 0.1, 0.2, 0.1, 0.14, 0.02]),
-                1.0, 0.35, 0.22, 1.0, 0.014, 1.1,
+                new Float32Array([
+                    asteroidX - unit * 0.08, asteroidY - unit * 0.09,
+                    asteroidX + unit * 0.08, asteroidY - unit * 0.09,
+                    asteroidX + unit * 0.14, asteroidY,
+                    asteroidX + unit * 0.08, asteroidY + unit * 0.10,
+                    asteroidX - unit * 0.08, asteroidY + unit * 0.10,
+                    asteroidX - unit * 0.14, asteroidY,
+                ]),
+                1.0, 0.35, 0.22, 1.0, unit * 0.01, 1.1,
             );
-            frame.line(-0.64, 0.0, 0.02, 0.02, 0.45, 0.9, 1.0, 1.0, 0.012, 1.45);
-            frame.line(-0.18, -0.045, 0.07, -0.01, 0.45, 0.9, 1.0, 1.0, 0.008, 0.9);
+            frame.line(shipX + unit * 0.17, shipY, centerX - unit * 0.25, centerY, 0.45, 0.9, 1.0, 1.0, unit * 0.009, 1.45);
+            frame.line(centerX - unit * 0.12, centerY - unit * 0.045, centerX - unit * 0.04, centerY - unit * 0.01, 0.45, 0.9, 1.0, 1.0, unit * 0.006, 0.9);
 
             for (let index = 0; index < 16; index += 1) {
                 const angle = index * 2.399 + 0.2;
-                const length = 0.035 + (index % 4) * 0.012;
-                const cx = 0.06;
-                const cy = 0.02;
+                const length = unit * (0.035 + (index % 4) * 0.012);
+                const cx = centerX - unit * 0.22;
+                const cy = centerY;
                 frame.line(
-                    cx + Math.cos(angle) * 0.03,
-                    cy + Math.sin(angle) * 0.03,
-                    cx + Math.cos(angle) * (0.03 + length),
-                    cy + Math.sin(angle) * (0.03 + length),
-                    1.0, 0.74, 0.2, 1.0, 0.007, 0.8 + (index % 3) * 0.2,
+                    cx + Math.cos(angle) * unit * 0.03,
+                    cy + Math.sin(angle) * unit * 0.03,
+                    cx + Math.cos(angle) * (unit * 0.03 + length),
+                    cy + Math.sin(angle) * (unit * 0.03 + length),
+                    1.0, 0.74, 0.2, 1.0, unit * 0.005, 0.8 + (index % 3) * 0.2,
                 );
             }
 
@@ -267,7 +295,11 @@
         function renderOrReport(gpu, time = performance.now()) {
             try {
                 if (demo === "frame-api") {
-                    gpu.renderFrame(buildFrameApiHarness(time));
+                    const { width, height } = canvasPixelSize();
+                    gpu.renderFrameWithView(
+                        buildFrameApiHarness(width, height, time),
+                        VectorFrameView.canvasPixels(width, height),
+                    );
                 } else if (demo === "blasterites") {
                     gpu.render_blasterites_tester(time);
                 } else if (demo === "tuner") {
