@@ -43,7 +43,7 @@ forbidden_actions:
   - request_paid_github_review_retrigger
 acceptance:
   - Replication Vector is tested against Velumin's landed VectorFrameView path using project-owned VectorCommand data or a documented setup-mismatch reason.
-  - Blasterites-style pixel or full-window coordinate usage is tested against Velumin's landed VectorFrameView path or mapped into a representative harness with exact evidence.
+  - Blasterites-style pixel or full-window coordinate usage is tested against Velumin's landed VectorFrameView path using the actual Blasterites checkout or a newly derived adapter/harness tied to exact Blasterites source behavior.
   - The evaluation records whether the current browser renderer API is sufficient for both consumers without adding new Velumin API surface.
   - Concrete gaps are documented with file/line evidence and validation output, including camera/view controls, batching, ring helpers, wasm packaging friction, display settings, or retained scene pressure if encountered.
   - The result recommends the next Velumin public-surface direction, including no immediate expansion if the current API is sufficient.
@@ -97,7 +97,7 @@ This item is an integration/evidence slice, not a feature slice. It should prese
 2. Inspect Replication Vector's current Velumin dependency and representative `VectorCommand` scene.
 3. Attempt to render the Replication Vector-owned command data through Velumin using the landed view-mapping path, preferably without rebuilding typed Rust commands through JavaScript.
 4. Inspect Blasterites' current coordinate and rendering model, especially canvas-pixel/full-window simulation and drawing.
-5. Attempt a minimal Blasterites-style frame or adapter using `VectorFrameView.canvasPixels(...)` or explicit logical extents, without implementing game behavior.
+5. Attempt a minimal Blasterites-style frame or adapter using `VectorFrameView.canvasPixels(...)` or explicit logical extents, without implementing game behavior; this must use the actual Blasterites checkout or derive the adapter from exact Blasterites source behavior rather than reusing Velumin's existing generic `/?demo=frame-api` harness as evidence.
 6. Capture browser runtime evidence, screenshot/pixel evidence, or an exact setup-mismatch note if a WebGPU-capable runtime is unavailable.
 7. Add a Velumin evidence record, expected as `project/evidence/EV-0012.md`, documenting results, gaps, and recommendation.
 8. Update `project/status/current_status.md` only if the evidence changes or sharpens the recommended next action.
@@ -111,12 +111,13 @@ This item is an integration/evidence slice, not a feature slice. It should prese
 - Do not implement DP-0002 Phase 3/native `winit` work.
 - Do not introduce an alternate renderer or game engine.
 - Do not convert downstream consumer repositories into permanent Velumin examples unless a separate downstream work item explicitly scopes that change.
+- Do not satisfy the Blasterites dogfooding criterion by rerunning Velumin's existing generic `/?demo=frame-api` harness alone.
 - Do not request paid GitHub review-agent retriggers; use self-review with a fresh independent sub-agent when review is needed.
 
 ## Acceptance Criteria
 
 - Replication Vector is tested against Velumin's landed `VectorFrameView` path using project-owned `VectorCommand` data, or the evaluation records the exact setup mismatch that prevents this.
-- Blasterites-style pixel/full-window coordinate usage is tested against Velumin's landed `VectorFrameView` path, either through the real consumer or a faithful representative harness.
+- Blasterites-style pixel/full-window coordinate usage is tested against Velumin's landed `VectorFrameView` path, either through the real consumer checkout or a newly derived adapter/harness tied to exact Blasterites source behavior.
 - Browser runtime evidence proves visible rendering, or the evaluation remains explicitly unresolved with a concrete WebGPU/browser setup reason.
 - The evidence records whether the current browser renderer API is sufficient for each consumer without adding new Velumin API surface.
 - Any concrete gaps are documented with file/line evidence and validation output.
@@ -134,7 +135,7 @@ This item is an integration/evidence slice, not a feature slice. It should prese
 - Replication Vector `scripts/version tools`
 - Replication Vector `scripts/test`
 - Replication Vector `scripts/baseline` or a documented setup-mismatch note
-- Blasterites available validation or smoke command, or a documented setup-mismatch note
+- Blasterites available validation or smoke command, a browser capture from a newly derived Blasterites-source-tied adapter/harness, or a documented setup-mismatch note
 - Browser runtime render/capture validation for the dogfooded frame(s), or an explicit unresolved result when no WebGPU-capable browser is available
 
 ## Risk Notes
